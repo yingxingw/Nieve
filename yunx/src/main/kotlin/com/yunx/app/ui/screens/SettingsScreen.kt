@@ -48,7 +48,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
@@ -103,7 +106,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -369,23 +377,10 @@ fun SettingsScreen(
             .padding(16.dp)
     ) {
         SectionLabel(stringResource(R.string.section_download))
-        // 引擎切换在独立页面里做（那里上下两段各一个按钮），这里只显示当前用的是哪个
-        SettingsItem(
-            icon = Icons.Outlined.SwapHoriz,
-            shape = listGroupShape(ListGroupPos.FIRST),
-            title = stringResource(R.string.settings_download_engine),
-            description = stringResource(
-                if (engineOn) R.string.settings_download_engine_desc_gopeed
-                else R.string.settings_download_engine_desc_builtin
-            ),
-            modifier = engineRowModifier,
-            onClick = onGopeedClick
-        )
-
-        Spacer(modifier = Modifier.height(ListGroupGap))
+        // 引擎固定为内置分片下载器：不再暴露切换入口，也不显示「下载引擎」行。
         SettingsItem(
             icon = Icons.Outlined.Layers,
-            shape = listGroupShape(ListGroupPos.MIDDLE),
+            shape = listGroupShape(ListGroupPos.FIRST),
             title = stringResource(R.string.settings_download_threads),
             description = stringResource(R.string.settings_download_threads_desc),
             onClick = { showThreadsDialog = true }
@@ -1270,10 +1265,23 @@ internal fun SettingsItem(
     modifier: Modifier = Modifier
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    Card(
+    val tint = MaterialTheme.colorScheme.onSurface
+    Box(
         modifier = modifier
             .fillMaxWidth()
+            .shadow(5.dp, shape, clip = false)
             .clip(shape)
+            .background(
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
+                shape = shape
+            )
+            .background(
+                Brush.verticalGradient(
+                    listOf(tint.copy(alpha = 0.06f), tint.copy(alpha = 0.02f))
+                ),
+                shape
+            )
+            .border(1.dp, tint.copy(alpha = 0.12f), shape)
             .then(
                 if (checked != null) Modifier.toggleable(
                     value = checked,
@@ -1287,45 +1295,66 @@ internal fun SettingsItem(
                     onClick = onClick,
                     onLongClick = onLongClick
                 )
-            ),
-        shape = shape,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
+            )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 15.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.width(16.dp))
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f))
+                    .border(
+                        1.dp,
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                        RoundedCornerShape(14.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = description,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            Spacer(modifier = Modifier.width(10.dp))
             if (trailing != null) {
                 trailing()
             } else {
-                Icon(
-                    imageVector = Icons.Outlined.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.outline
-                )
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .background(tint.copy(alpha = 0.06f))
+                        .border(1.dp, tint.copy(alpha = 0.10f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.ChevronRight,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

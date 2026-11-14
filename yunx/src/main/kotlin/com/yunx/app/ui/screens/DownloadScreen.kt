@@ -37,7 +37,12 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -56,6 +61,10 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -273,22 +282,70 @@ fun DownloadScreen(
             }
         }
 
-        // 添加任务 FAB（手动粘贴直链 / 磁力链接的唯一入口）
-        // ★ 曾经被 c829083「添加关于页」误删（连同 permissionLauncher/hasPermission 变成死代码、
-        //   空状态文案却还在说「点击右下角按钮」）——恢复时注意别再连着删掉。
-        FloatingActionButton(
-            onClick = {
-                if (needLegacyPermission && !hasPermission) {
-                    permissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                } else {
-                    showAddDialog = true
-                }
-            },
+        // 添加任务 FAB：圆形液态玻璃按钮，按下时横向拉伸、纵向压扁，松手弹回
+        val fabInteraction = remember { MutableInteractionSource() }
+        val fabPressed by fabInteraction.collectIsPressedAsState()
+        val fabScaleX by animateFloatAsState(
+            targetValue = if (fabPressed) 1.16f else 1f,
+            animationSpec = spring(dampingRatio = 0.42f, stiffness = Spring.StiffnessLow),
+            label = "fabScaleX"
+        )
+        val fabScaleY by animateFloatAsState(
+            targetValue = if (fabPressed) 0.86f else 1f,
+            animationSpec = spring(dampingRatio = 0.42f, stiffness = Spring.StiffnessLow),
+            label = "fabScaleY"
+        )
+        Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(20.dp)
+                .graphicsLayer {
+                    scaleX = fabScaleX
+                    scaleY = fabScaleY
+                }
+                .size(62.dp)
+                .shadow(14.dp, CircleShape, clip = false)
+                .clip(CircleShape)
+                .background(
+                    Brush.linearGradient(
+                        listOf(Color(0xFF8FD4FF), Color(0xFF3D8DFF), Color(0xFF5FB8FF))
+                    )
+                )
+                .border(
+                    width = 1.dp,
+                    color = Color.White.copy(alpha = 0.38f),
+                    shape = CircleShape
+                )
+                .clickable(
+                    interactionSource = fabInteraction,
+                    indication = null
+                ) {
+                    if (needLegacyPermission && !hasPermission) {
+                        permissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    } else {
+                        showAddDialog = true
+                    }
+                },
+            contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.dl_add_task))
+            // 顶部高光弧，模拟液态玻璃的折射边缘
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(30.dp)
+                    .align(Alignment.TopCenter)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color.White.copy(alpha = 0.22f), Color.Transparent)
+                        )
+                    )
+            )
+            Icon(
+                imageVector = Icons.Filled.Add,
+                contentDescription = stringResource(R.string.dl_add_task),
+                modifier = Modifier.size(30.dp),
+                tint = Color.White
+            )
         }
     }
 
@@ -531,29 +588,36 @@ private fun DeleteConfirmDialog(
 
 @Composable
 private fun EmptyDownloadState(modifier: Modifier = Modifier) {
+    val onSurface = MaterialTheme.colorScheme.onSurface
     Column(
         modifier = modifier.padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Surface(
-            modifier = Modifier.size(64.dp),
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceContainerHighest
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Outlined.Download,
-                    contentDescription = null,
-                    modifier = Modifier.size(28.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+        Box(
+            modifier = Modifier
+                .size(84.dp)
+                .shadow(8.dp, CircleShape, clip = false)
+                .clip(CircleShape)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(onSurface.copy(alpha = 0.09f), onSurface.copy(alpha = 0.02f))
+                    )
                 )
-            }
+                .border(1.dp, onSurface.copy(alpha = 0.12f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Download,
+                contentDescription = null,
+                modifier = Modifier.size(34.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(18.dp))
         Text(
             text = stringResource(R.string.dl_empty_title),
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.SemiBold
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
@@ -958,8 +1022,12 @@ private fun DownloadTaskCard(
             .shadow(6.dp, nieveCardShape, clip = false)
             .clip(nieveCardShape)
             .background(
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
+                shape = nieveCardShape
+            )
+            .background(
                 Brush.verticalGradient(
-                    listOf(glassTint.copy(alpha = 0.075f), glassTint.copy(alpha = 0.02f))
+                    listOf(glassTint.copy(alpha = 0.06f), glassTint.copy(alpha = 0.02f))
                 ),
                 nieveCardShape
             )
@@ -1331,29 +1399,63 @@ private fun AddDownloadDialog(
         )
     }
     val isMagnet = MagnetLink.isMagnet(url)
+    val sheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp, bottomStart = 28.dp, bottomEnd = 28.dp)
+    val tint = MaterialTheme.colorScheme.onSurface
 
-    AlertDialog(
+    // 类 HyperOS 通知面板：底部大圆角玻璃卡片，拖拽条 + 全宽主按钮，不用系统 AlertDialog。
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dl_add_task)) },
-        text = {
-            // 横屏/小屏时内容超高可滚动，避免按钮被挤出屏幕
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 64.dp),
+            contentAlignment = Alignment.BottomCenter
+        ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 420.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(horizontal = 12.dp, vertical = 12.dp)
+                    .navigationBarsPadding()
+                    .shadow(24.dp, sheetShape, clip = false)
+                    .clip(sheetShape)
+                    .background(
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                        shape = sheetShape
+                    )
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(tint.copy(alpha = 0.07f), tint.copy(alpha = 0.02f))
+                        ),
+                        sheetShape
+                    )
+                    .border(1.dp, tint.copy(alpha = 0.14f), sheetShape)
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .width(40.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(tint.copy(alpha = 0.22f))
+                )
+                Text(
+                    text = stringResource(R.string.dl_add_task),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
                 Text(
                     text = stringResource(R.string.dl_save_to_dir, Environment.DIRECTORY_DOWNLOADS),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 OutlinedTextField(
                     value = url,
                     onValueChange = {
                         url = it
-                        // 磁力链接的落盘名字由种子决定（引擎解析出元数据才知道），这里先拿 dn= 里的显示名占位
                         if (name.isBlank()) {
                             name = if (MagnetLink.isMagnet(it)) {
                                 MagnetLink.displayName(it)
@@ -1364,10 +1466,10 @@ private fun AddDownloadDialog(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text(stringResource(R.string.dl_url_placeholder)) },
-                    singleLine = true
+                    singleLine = true,
+                    shape = RoundedCornerShape(18.dp)
                 )
                 if (isMagnet) {
-                    // 磁力只有 Gopeed 内核能下（内置分片下载器是纯 HTTP 实现），提前说清楚省得白等
                     Text(
                         text = stringResource(R.string.dl_magnet_hint),
                         style = MaterialTheme.typography.bodySmall,
@@ -1378,22 +1480,52 @@ private fun AddDownloadDialog(
                     value = name,
                     onValueChange = { name = it },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text(if (isMagnet) stringResource(R.string.dl_name_placeholder_magnet) else stringResource(R.string.dl_name_placeholder)) },
-                    singleLine = true
+                    placeholder = {
+                        Text(
+                            if (isMagnet) stringResource(R.string.dl_name_placeholder_magnet)
+                            else stringResource(R.string.dl_name_placeholder)
+                        )
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(18.dp)
                 )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    TextButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(50.dp)
+                    ) {
+                        Text(stringResource(R.string.action_cancel))
+                    }
+                    Box(
+                        modifier = Modifier
+                            .weight(1.4f)
+                            .height(50.dp)
+                            .clip(RoundedCornerShape(25.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color(0xFF8FD4FF), Color(0xFF3D8DFF))
+                                )
+                            )
+                            .clickable(
+                                enabled = url.isNotBlank() && (name.isNotBlank() || isMagnet)
+                            ) { onConfirm(url.trim(), name.trim()) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = stringResource(R.string.dl_start_download),
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
             }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onConfirm(url.trim(), name.trim()) },
-                // 磁力允许留空文件名：真正的名字要等引擎拿到元数据（DownloadManager 会自己兜底）
-                enabled = url.isNotBlank() && (name.isNotBlank() || isMagnet)
-            ) { Text(stringResource(R.string.dl_start_download)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         }
-    )
+    }
 }
 /** Nieve 玻璃进度条：冰蓝→青渐变 + 高光，下载中带轻微呼吸。 */
 @Composable

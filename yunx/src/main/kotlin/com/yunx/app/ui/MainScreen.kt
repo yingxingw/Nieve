@@ -90,7 +90,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -1033,6 +1035,10 @@ fun MainScreen(
         topAppBarState,
         flingAnimationSpec = null
     )
+    // 壳内模式没有可折叠顶栏：把折叠上限压成 0，nestedScroll 连接器就不会再截走页面滚动量。
+    LaunchedEffect(shellMode) {
+        if (shellMode) topAppBarState.heightOffsetLimit = 0f
+    }
 
     // 全局 Snackbar 宿主（Material3，替换原 Toast 提示）
     val snackbarHostState = rememberGlobalSnackbarHostState()
@@ -1373,20 +1379,18 @@ fun MainScreen(
                                     )
                                 }
                                 if (currentTab == MainTab.Resolve) {
-                                    IconButton(onClick = { showBookmarks = true }) {
-                                        Icon(
-                                            Icons.Outlined.Bookmarks,
-                                            contentDescription = stringResource(R.string.vm_main_bookmark_links)
-                                        )
-                                    }
+                                    NieveGlassIconButton(
+                                        icon = Icons.Outlined.Bookmarks,
+                                        contentDescription = stringResource(R.string.vm_main_bookmark_links),
+                                        onClick = { showBookmarks = true }
+                                    )
                                 }
                                 if (currentTab == MainTab.Drive && !driveSubPageOpen) {
-                                    IconButton(onClick = { showDriveSort = true }) {
-                                        Icon(
-                                            Icons.Outlined.SwapVert,
-                                            contentDescription = stringResource(R.string.vm_main_sort_drives)
-                                        )
-                                    }
+                                    NieveGlassIconButton(
+                                        icon = Icons.Outlined.SwapVert,
+                                        contentDescription = stringResource(R.string.vm_main_sort_drives),
+                                        onClick = { showDriveSort = true }
+                                    )
                                 }
                             }
                             Spacer(Modifier.height(10.dp))
@@ -1858,5 +1862,38 @@ private fun NieveParseSegments(current: MainTab, onSelect: (MainTab) -> Unit) {
                 }
             }
         }
+    }
+}
+
+/** 顶栏右上角的液态玻璃圆形图标按钮（收藏云盘链接 / 排序与显示）。 */
+@Composable
+private fun NieveGlassIconButton(
+    icon: ImageVector,
+    contentDescription: String?,
+    onClick: () -> Unit
+) {
+    val tint = MaterialTheme.colorScheme.onSurface
+    val shape = RoundedCornerShape(50)
+    Box(
+        modifier = Modifier
+            .padding(start = 8.dp)
+            .size(42.dp)
+            .shadow(5.dp, shape, clip = false)
+            .clip(shape)
+            .background(
+                Brush.verticalGradient(
+                    listOf(tint.copy(alpha = 0.10f), tint.copy(alpha = 0.03f))
+                )
+            )
+            .border(1.dp, tint.copy(alpha = 0.14f), shape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(21.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
     }
 }

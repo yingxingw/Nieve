@@ -954,8 +954,12 @@ private fun DriveAccountCard(
         .shadow(6.dp, cardShape, clip = false)
         .clip(cardShape)
         .background(
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
+            shape = cardShape
+        )
+        .background(
             brush = Brush.verticalGradient(
-                listOf(glassTint.copy(alpha = 0.075f), glassTint.copy(alpha = 0.02f))
+                listOf(glassTint.copy(alpha = 0.06f), glassTint.copy(alpha = 0.02f))
             ),
             shape = cardShape
         )

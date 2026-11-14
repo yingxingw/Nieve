@@ -430,7 +430,7 @@ fun NievePrivacyScreen(onBack: () -> Unit) {
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "更新日期：2026-11-14\n\n" +
+                    text = "更新日期：2026-11-15\n\n" +
                         "1. 信息收集\n" +
                         "Nieve 没有账号系统，不接入广告 SDK，不收集、不上传你的任何个人信息。" +
                         "应用没有遥测与统计上报。\n\n" +

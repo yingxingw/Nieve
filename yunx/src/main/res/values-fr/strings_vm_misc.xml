@@ -79,14 +79,14 @@
     <!-- À propos -->
     <string name="vm_about_title">À propos de Nieve</string>
     <string name="vm_about_intro_title">À propos de l\'application</string>
-    <string name="vm_about_intro_desc">Nieve est un outil Android qui réunit l\'analyse de liens de drive / vidéo, le téléchargement rapide et le skip automatique des publicités d\'ouverture. Collez un lien : les partages de drive peuvent être parcourus et téléchargés rapidement, les liens vidéo sont analysés en liens directs et images originales, et les images / vidéos / audios peuvent être prévisualisés et lus en ligne.</string>
+    <string name="vm_about_intro_desc">Nieve est un outil Android multifonction développé et débogué indépendamment par Chuxue. Il comprend la modification des pas, la lecture et le téléchargement de romans Qimao, le catalogue de films, la recherche et le téléchargement de musique, la capture de sources web, les vidéos aléatoires, l\'analyse VIP, ainsi que l\'analyse/téléchargement de drives et le skip automatique des publicités d\'ouverture. Tous les outils sont réunis dans une interface légère et améliorés au fil de l\'usage.</string>
     <string name="vm_about_license">Ce projet est open source sous licence GNU AGPL-3.0</string>
     <string name="vm_about_version_footer">Nieve v%1$s · par 酷安初雪</string>
     <string name="vm_about_icon">Icône Nieve</string>
     <string name="vm_about_app_name">Nieve</string>
     <string name="vm_about_developer">Développeur · 酷安初雪</string>
     <string name="vm_about_version_name">Nieve · v%1$s (%2$d)</string>
-    <string name="vm_about_tagline">Analyse · téléchargement · skip des pubs</string>
+    <string name="vm_about_tagline">Outil multifonction · développé et débogué indépendamment</string>
     <string name="vm_about_supported_platforms">Plateformes prises en charge</string>
     <string name="vm_about_drives">Drives</string>
     <string name="vm_about_video_parsing">Analyse vidéo</string>

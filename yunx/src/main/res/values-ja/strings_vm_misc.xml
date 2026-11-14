@@ -78,14 +78,14 @@
     <!-- アプリについて -->
     <string name="vm_about_title">Nieve について</string>
     <string name="vm_about_intro_title">アプリの概要</string>
-    <string name="vm_about_intro_desc">Nieve はドライブ / 動画リンクの解析、高速ダウンロード、起動画面広告の自動スキップを一つにまとめた Android ツールです。リンクを貼り付けるだけで、ドライブ共有は内容を閲覧して高速ダウンロードでき、動画リンクは直リンクと元画像を解析できます。画像 / 動画 / 音声はすべてオンラインプレビュー・再生に対応しています。</string>
+    <string name="vm_about_intro_desc">Nieve は初雪が独立で開発・デバッグした Android の多機能ツールです。歩数変更、七猫小説の閲覧・ダウンロード、映画カタログ、音楽検索・ダウンロード、Web ソース取得、ランダム動画、VIP 解析、ドライブ解析・ダウンロード、起動画面広告の自動スキップを収録しています。すべてのツールを一つの軽量な画面にまとめ、日常の使い方に合わせて継続的に改善しています。</string>
     <string name="vm_about_license">本プロジェクトは GNU AGPL-3.0 ライセンスで公開されています</string>
     <string name="vm_about_version_footer">Nieve v%1$s · 酷安初雪 制作</string>
     <string name="vm_about_icon">Nieve アイコン</string>
     <string name="vm_about_app_name">Nieve</string>
     <string name="vm_about_developer">開発者 · 酷安初雪</string>
     <string name="vm_about_version_name">Nieve · v%1$s (%2$d)</string>
-    <string name="vm_about_tagline">解析・ダウンロード・起動画面スキップ</string>
+    <string name="vm_about_tagline">多機能ツール · 初雪が独立開発・デバッグ</string>
     <string name="vm_about_supported_platforms">対応プラットフォーム</string>
     <string name="vm_about_drives">ドライブ</string>
     <string name="vm_about_video_parsing">動画解析</string>

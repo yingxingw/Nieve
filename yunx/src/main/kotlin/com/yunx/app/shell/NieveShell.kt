@@ -59,6 +59,13 @@ enum class ShellTab(val label: String, val icon: ImageVector) {
     Settings("设置", Icons.Rounded.Settings),
 }
 
+/** 设置页层级：根页 0，关于 1，关于里的开发者/致谢/隐私 2。用于区分前进、后退动画方向。 */
+private fun settingsRouteDepth(route: String?): Int = when (route) {
+    null -> 0
+    "about" -> 1
+    else -> 2
+}
+
 /**
  * Nieve unified shell — a single black/liquid-glass surface hosting:
  * 首页 / 解析下载 / 自动跳过 / 设置。
@@ -174,7 +181,12 @@ fun NieveShell(
                                     onExitToHome = { setPage(ShellTab.Home) },
                                 )
 
-                                ShellTab.Settings -> when (settingsPage) {
+                                ShellTab.Settings -> NievePageTransition(
+                                    targetState = settingsPage,
+                                    modifier = Modifier.fillMaxSize(),
+                                    label = "settingsPage",
+                                    depth = ::settingsRouteDepth,
+                                ) { route -> when (route) {
                                     "about" -> NieveAboutScreen(
                                         onBack = { settingsPage = null },
                                         onOpenDeveloper = { settingsPage = "developer" },
@@ -211,6 +223,7 @@ fun NieveShell(
                                         onOpenAbout = { settingsPage = "about" },
                                         onOpenDeveloper = { settingsPage = "developer" },
                                     )
+                                }
                                 }
                             }
                         }

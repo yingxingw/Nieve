@@ -232,48 +232,42 @@ fun NieveAboutScreen(
 
     checkResult?.let { result ->
         when (result) {
-            is NieveUpdater.CheckResult.UpToDate -> AlertDialog(
+            is NieveUpdater.CheckResult.UpToDate -> NieveGlassDialog(
                 onDismissRequest = { checkResult = null },
-                icon = { Icon(Icons.Rounded.CheckCircle, contentDescription = null) },
-                title = { Text("已是最新版本") },
-                text = { Text("当前版本 $versionName 已是最新。") },
-                confirmButton = {
-                    TextButton(onClick = { checkResult = null }) { Text("好的") }
-                },
-            )
+                title = "已是最新版本",
+                confirmText = "好的",
+                onConfirm = { checkResult = null },
+            ) {
+                Text("当前版本 $versionName 已是最新。")
+            }
 
-            is NieveUpdater.CheckResult.UpdateAvailable -> AlertDialog(
+            is NieveUpdater.CheckResult.UpdateAvailable -> NieveGlassDialog(
                 onDismissRequest = { checkResult = null },
-                icon = { Icon(Icons.Rounded.SystemUpdate, contentDescription = null) },
-                title = { Text("发现新版本 ${result.info.versionName}") },
-                text = {
-                    Text(
-                        "发布日期：${result.info.updateDate}\n\n" +
-                            "更新内容：\n${result.info.changelog}"
-                    )
+                title = "发现新版本 ${result.info.versionName}",
+                confirmText = "前往下载",
+                onConfirm = {
+                    checkResult = null
+                    if (result.info.downloadUrl.isNotBlank()) {
+                        openUrl(context, result.info.downloadUrl)
+                    }
                 },
-                confirmButton = {
-                    TextButton(onClick = {
-                        checkResult = null
-                        if (result.info.downloadUrl.isNotBlank()) {
-                            openUrl(context, result.info.downloadUrl)
-                        }
-                    }) { Text("前往下载") }
-                },
-                dismissButton = {
-                    TextButton(onClick = { checkResult = null }) { Text("以后再说") }
-                },
-            )
+                dismissText = "以后再说",
+                onDismiss = { checkResult = null },
+            ) {
+                Text(
+                    "发布日期：${result.info.updateDate}\n\n" +
+                        "更新内容：\n${result.info.changelog}"
+                )
+            }
 
-            is NieveUpdater.CheckResult.Failed -> AlertDialog(
+            is NieveUpdater.CheckResult.Failed -> NieveGlassDialog(
                 onDismissRequest = { checkResult = null },
-                icon = { Icon(Icons.Rounded.ErrorOutline, contentDescription = null) },
-                title = { Text("检查更新失败") },
-                text = { Text(result.message) },
-                confirmButton = {
-                    TextButton(onClick = { checkResult = null }) { Text("好的") }
-                },
-            )
+                title = "检查更新失败",
+                confirmText = "好的",
+                onConfirm = { checkResult = null },
+            ) {
+                Text(result.message)
+            }
 
             null -> Unit
         }

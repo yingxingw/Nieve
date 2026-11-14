@@ -155,7 +155,13 @@ fun SkipTab(
     }
 
     Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
-        when (route) {
+        NievePageTransition(
+            targetState = route,
+            modifier = Modifier.fillMaxSize(),
+            label = "skipPage",
+            depth = ::skipRouteDepth,
+        ) { currentRoute ->
+        when (currentRoute) {
         SkipRoute.Settings -> SkipSettingsPage(
             context = context,
             activity = activity,
@@ -196,6 +202,7 @@ fun SkipTab(
             onOpenAlive = { onRouteChange(SkipRoute.Alive) },
         )
     }
+        }
     }
 
 // 首次进入的「跳过教程」弹窗已移除：点击服务开关直接跳系统无障碍设置。
@@ -207,6 +214,13 @@ private object SkipRoute {
     const val Logs = "logs"
     const val Whitelist = "whitelist"
     const val Alive = "alive"
+}
+
+/** 跳过页层级：首页 0，列表/设置 1，设置里的日志 2。 */
+private fun skipRouteDepth(route: String): Int = when (route) {
+    SkipRoute.Dashboard -> 0
+    SkipRoute.Logs -> 2
+    else -> 1
 }
 
 /** 打开无障碍设置：带 NEW_TASK / CLEAR_TOP，失败时回退系统设置主页并提示。 */

@@ -1,5 +1,18 @@
 package com.yunx.app.shell
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,7 +40,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,6 +54,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -227,6 +245,45 @@ fun NieveGlassIconButton(
 }
 
 /**
+ * Nieve 二级页统一过渡：新页带轻微缩放入场，旧页缩退。
+ * [depth] 用来判断前进/后退方向（数值变大 = 进入更深一层）。
+ */
+@Composable
+fun <T> NievePageTransition(
+    targetState: T,
+    modifier: Modifier = Modifier,
+    label: String = "nievePage",
+    depth: (T) -> Int = { 0 },
+    content: @Composable (T) -> Unit,
+) {
+    AnimatedContent(
+        targetState = targetState,
+        modifier = modifier,
+        transitionSpec = {
+            val forward = depth(targetState) >= depth(initialState)
+            val enterSlide = spring<IntOffset>(
+                dampingRatio = 0.84f,
+                stiffness = Spring.StiffnessMediumLow
+            )
+            val enterScale = spring<Float>(
+                dampingRatio = 0.82f,
+                stiffness = Spring.StiffnessMediumLow
+            )
+            (
+                fadeIn(tween(190)) +
+                    slideInHorizontally(enterSlide) { if (forward) it / 3 else -it / 3 } +
+                    scaleIn(initialScale = 0.94f, animationSpec = enterScale)
+                ).togetherWith(
+                fadeOut(tween(130)) +
+                    slideOutHorizontally(tween(210)) { if (forward) -it / 6 else it / 6 } +
+                    scaleOut(targetScale = 0.97f, animationSpec = tween(210))
+            )
+        },
+        label = label
+    ) { content(it) }
+}
+
+/**
  * Nieve 通用液态玻璃弹窗：替换 M3 原生 AlertDialog。
  * 半透明玻璃面板 + 顶部高光 + 细描边，标题左对齐，底部按钮是胶囊。
  */
@@ -246,6 +303,25 @@ fun NieveGlassDialog(
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         val shape = RoundedCornerShape(28.dp)
+        var appeared by remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) { appeared = true }
+        AnimatedVisibility(
+            visible = appeared,
+            enter = fadeIn(tween(140)) +
+                slideInVertically(
+                    animationSpec = spring(
+                        dampingRatio = 0.82f,
+                        stiffness = Spring.StiffnessMediumLow
+                    )
+                ) { -it / 6 } +
+                scaleIn(
+                    initialScale = 0.92f,
+                    animationSpec = spring(
+                        dampingRatio = 0.80f,
+                        stiffness = Spring.StiffnessMediumLow
+                    )
+                )
+        ) {
         Column(
             modifier = modifier
                 .fillMaxWidth()
@@ -319,6 +395,7 @@ fun NieveGlassDialog(
                     }
                 }
             }
+        }
         }
     }
 }

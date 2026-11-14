@@ -31,6 +31,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,6 +50,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -95,6 +98,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -244,18 +248,24 @@ internal fun FileActionSheet(
 @Composable
 internal fun FileSheetHeader(file: ShareFile) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Surface(
-            modifier = Modifier.size(40.dp),
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.primaryContainer
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f))
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.26f),
+                    RoundedCornerShape(14.dp)
+                ),
+            contentAlignment = Alignment.Center
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = if (file.isdir) Icons.Outlined.Folder else Icons.Outlined.Download,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
+            Icon(
+                imageVector = if (file.isdir) Icons.Outlined.Folder else Icons.Outlined.Download,
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
         }
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
@@ -490,18 +500,20 @@ internal fun ActionItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
             .clickable(enabled = !LocalFileOperationBusy.current, onClick = onClick)
-            .padding(vertical = 10.dp, horizontal = 4.dp),
+            .padding(vertical = 10.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Surface(
-            modifier = Modifier.size(38.dp),
-            shape = MaterialTheme.shapes.large,
-            color = tint.copy(alpha = 0.12f)
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clip(RoundedCornerShape(13.dp))
+                .background(tint.copy(alpha = 0.12f))
+                .border(1.dp, tint.copy(alpha = 0.24f), RoundedCornerShape(13.dp)),
+            contentAlignment = Alignment.Center
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
-            }
+            Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
         }
         Spacer(modifier = Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {

@@ -50,6 +50,11 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.material3.ripple
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.ContentCopy
@@ -102,6 +107,12 @@ import com.yunx.app.ui.preview.previewNetworkHeaders
 import com.yunx.app.ui.resolve.formatSize
 import com.yunx.app.ui.theme.ListGroupGap
 import com.yunx.app.ui.theme.listGroupShape
+import com.yunx.app.shell.NieveGlassIconButton
+import com.yunx.app.shell.NieveGlassPillButton
+import com.yunx.app.shell.nieveGlass
+import com.yunx.app.shell.nieveGlassBorder
+import com.yunx.app.shell.nieveGlassFill
+import com.yunx.app.shell.nieveGlassHighlight
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -268,12 +279,15 @@ private fun VideoResultTopBar(result: VideoParseResult, onBack: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 4.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.sh_back))
-        }
+        NieveGlassIconButton(
+            icon = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = stringResource(R.string.sh_back),
+            onClick = onBack
+        )
+        Spacer(modifier = Modifier.width(12.dp))
         // 平台 Logo：按图标自身形状原样画（不裁圆、不垫底色，理由见 PlatformLogos 的 KDoc）
         Image(
             painter = painterResource(result.platform.logoRes()),
@@ -291,7 +305,7 @@ private fun VideoResultTopBar(result: VideoParseResult, onBack: () -> Unit) {
             Text(
                 text = result.title.ifBlank { stringResource(R.string.sh_video_content) },
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
+                fontWeight = FontWeight.SemiBold,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -315,27 +329,32 @@ private fun ImageSelectionTopBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 4.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = onExit) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.sh_exit_multi_select))
-        }
+        NieveGlassIconButton(
+            icon = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = stringResource(R.string.sh_exit_multi_select),
+            onClick = onExit
+        )
+        Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = stringResource(R.string.sh_selected_count_images, selectedCount),
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.SemiBold
             )
             Text(
                 text = if (allSelected) stringResource(R.string.sh_all_selected) else stringResource(R.string.sh_tap_image_to_select),
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        TextButton(onClick = onToggleSelectAll) {
-            Text(if (allSelected) stringResource(R.string.sh_deselect_all) else stringResource(R.string.sh_select_all))
-        }
+        NieveGlassPillButton(
+            text = if (allSelected) stringResource(R.string.sh_deselect_all) else stringResource(R.string.sh_select_all),
+            onClick = onToggleSelectAll,
+            primary = true
+        )
     }
 }
 
@@ -427,8 +446,17 @@ private fun ImagePagerBar(page: Int, pageCount: Int, total: Int, onPageChange: (
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f)
         )
-        TextButton(onClick = { onPageChange(page - 1) }, enabled = page > 0) { Text(stringResource(R.string.sh_prev_page)) }
-        TextButton(onClick = { onPageChange(page + 1) }, enabled = page < pageCount - 1) { Text(stringResource(R.string.sh_next_page)) }
+        NieveGlassPillButton(
+            text = stringResource(R.string.sh_prev_page),
+            onClick = { onPageChange(page - 1) },
+            enabled = page > 0
+        )
+        Spacer(Modifier.width(6.dp))
+        NieveGlassPillButton(
+            text = stringResource(R.string.sh_next_page),
+            onClick = { onPageChange(page + 1) },
+            enabled = page < pageCount - 1
+        )
     }
 }
 
@@ -500,16 +528,17 @@ private fun ImageGridCell(
                     modifier = Modifier.align(Alignment.TopEnd)
                 )
             } else {
-                IconButton(
-                    onClick = onDownload,
+                Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(4.dp)
+                        .padding(5.dp)
                         .size(34.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                            shape = CircleShape
-                        )
+                        .clip(CircleShape)
+                        .background(nieveGlassFill(), CircleShape)
+                        .background(nieveGlassHighlight(), CircleShape)
+                        .border(1.dp, nieveGlassBorder(), CircleShape)
+                        .clickable(onClick = onDownload),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Download,
@@ -523,37 +552,55 @@ private fun ImageGridCell(
     }
 }
 
-/** 缩略图角标（半透明胶囊）：底色用它而不是纯色，压在明暗不一的图片上都读得清 */
+/** 缩略图角标（压暗半透明胶囊）：压在明暗不一的图片上都读得清 */
 @Composable
 private fun CellBadge(text: String, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(50),
-        color = MaterialTheme.colorScheme.surfaceContainerHighest
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(50))
+            .background(Color.Black.copy(alpha = 0.46f))
     ) {
         Text(
             text = text,
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = Color.White
         )
     }
 }
 
-/** 底部固定的「全部下载」：列表与网格两种布局共用同一个入口 */
+/** 底部固定的「全部下载」：列表与网格两种布局共用同一个入口（玻璃悬浮条） */
 @Composable
 private fun DownloadAllBar(result: VideoParseResult, onDownloadAll: () -> Unit) {
     // 没有媒体时不占位（空结果通常意味着解析没拿到直链）
     if (result.medias.isEmpty()) return
-    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
-        Button(
-            onClick = onDownloadAll,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp)
-                .height(48.dp)
-        ) {
-            Text(stringResource(R.string.sh_download_all_count, result.medias.size))
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .nieveGlass(RoundedCornerShape(18.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(bounded = true),
+                onClick = onDownloadAll
+            )
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Outlined.Download,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = stringResource(R.string.sh_download_all_count, result.medias.size),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }
@@ -675,12 +722,10 @@ private fun VideoMediaRow(
         if (media.size > 0) add(formatSize(media.size))
     }.joinToString("  ·  ")
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = listGroupShape(index, count),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .nieveGlass(listGroupShape(index, count))
     ) {
         ListItem(
             headlineContent = {
@@ -705,28 +750,47 @@ private fun VideoMediaRow(
             trailingContent = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // 预览：图片/视频/音频都能直接在线看，不必先下载
-                    IconButton(onClick = onPreview, modifier = Modifier.size(36.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(nieveGlassFill(), CircleShape)
+                            .border(1.dp, nieveGlassBorder(), CircleShape)
+                            .clickable(onClick = onPreview),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Icon(
                             imageVector = Icons.Outlined.Visibility,
                             contentDescription = stringResource(R.string.sh_preview),
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(19.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
                     // 仅下载音频：只有视频才有音轨（图片没有，音频本身就是音频）
                     if (media.kind == VideoMediaKind.VIDEO) {
-                        IconButton(onClick = onDownloadAudio, modifier = Modifier.size(36.dp)) {
+                        Spacer(Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(nieveGlassFill(), CircleShape)
+                                .border(1.dp, nieveGlassBorder(), CircleShape)
+                                .clickable(onClick = onDownloadAudio),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Icon(
                                 imageVector = Icons.Outlined.MusicNote,
                                 contentDescription = stringResource(R.string.sh_download_audio_only),
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier.size(19.dp),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
-                    TextButton(onClick = onDownload) {
-                        Text(stringResource(R.string.sh_download))
-                    }
+                    Spacer(Modifier.width(8.dp))
+                    NieveGlassPillButton(
+                        text = stringResource(R.string.sh_download),
+                        onClick = onDownload
+                    )
                 }
             },
             // 底色由外层 Card 决定，这里必须透明

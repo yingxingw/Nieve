@@ -20,9 +20,15 @@ class ConfigViewModel @Inject constructor(
 
     fun readConfig() {
         viewModelScope.launch {
-            val configPostSchema = configReadRepository.readConfig()
-            configReadRepository.changeConfigPostState(configPostSchema)
+            readConfigNow()
         }
+    }
+
+    /** 给订阅管理页使用：等待拉取完成后返回本次结果。 */
+    suspend fun readConfigNow(): ConfigPostSchema {
+        val configPostSchema = configReadRepository.readConfig()
+        configReadRepository.changeConfigPostState(configPostSchema)
+        return configPostSchema
     }
 
     fun loadConfig(configPostSchema: ConfigPostSchema) {

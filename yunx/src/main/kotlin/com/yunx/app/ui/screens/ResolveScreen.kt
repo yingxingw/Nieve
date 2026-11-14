@@ -24,6 +24,9 @@ import android.os.Build
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -36,7 +39,10 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -74,6 +80,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -87,6 +94,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -103,6 +111,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.yunx.app.R
+import com.yunx.app.shell.NieveGlassDialog
+import com.yunx.app.shell.NieveGlassPillButton
+import com.yunx.app.shell.NieveGlassTextField
+import com.yunx.app.shell.NievePageTransition
+import com.yunx.app.shell.nieveGlass
 import com.yunx.app.shell.nieveGlassBorder
 import com.yunx.app.shell.nieveGlassFill
 import com.yunx.app.shell.nieveGlassHighlight
@@ -289,13 +302,18 @@ fun ResolveScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        // 状态切换过渡：输入态/加载/详情/错误之间平滑淡入淡出（对齐网盘页：不上下移动）
-        AnimatedContent(
+        // 状态切换过渡：输入页 ↔ 结果页走「滑动 + 缩放」的二级页动效（与设置→关于的进入/返回一致）；
+        // 同层换内容（进入子目录 / 换分享）只淡入淡出，避免整页被推走。
+        NievePageTransition(
             targetState = state,
-            transitionSpec = {
-                fadeIn(effectsDefault()) togetherWith fadeOut(effectsFast())
-            },
-            label = "resolveState"
+            modifier = Modifier.fillMaxSize(),
+            label = "resolveState",
+            depth = { s ->
+                when (s) {
+                    is ResolveUiState.Detail, is ResolveUiState.Video -> 1
+                    else -> 0
+                }
+            }
         ) { s ->
             when (s) {
                 is ResolveUiState.Detail -> ShareDetailScreen(
@@ -460,21 +478,20 @@ fun ResolveScreen(
 
     // 获取下载直链加载弹窗（转存/取链需要时间，避免无反馈）
     if (viewModel.isFetchingDownloadLink) {
-        AlertDialog(
+        NieveGlassDialog(
             onDismissRequest = { },
-            confirmButton = { },
-            title = { Text(stringResource(R.string.rs_fetch_link_title)) },
-            text = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    YunXLoading(modifier = Modifier.size(24.dp))
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = stringResource(R.string.rs_fetching_link_wait),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+            title = stringResource(R.string.rs_fetch_link_title)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                YunXLoading(modifier = Modifier.size(24.dp))
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = stringResource(R.string.rs_fetching_link_wait),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-        )
+        }
     }
 
     // 下载直链弹窗
@@ -560,14 +577,7 @@ private fun ResolveInputContent(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(panelShape)
-                .background(color = nieveGlassFill(), shape = panelShape)
-                .background(nieveGlassHighlight(), panelShape)
-                .border(
-                    width = 1.dp,
-                    color = nieveGlassBorder(),
-                    shape = panelShape,
-                )
+                .nieveGlass(panelShape)
                 .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -577,131 +587,59 @@ private fun ResolveInputContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            val glassFieldColors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
-                unfocusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.03f),
-                focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.72f),
-                unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f),
-                cursorColor = MaterialTheme.colorScheme.primary,
-            )
-
-            OutlinedTextField(
+            NieveGlassTextField(
                 value = link,
                 onValueChange = onLinkChange,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text(stringResource(R.string.rs_input_placeholder)) },
-                leadingIcon = { Icon(Icons.Outlined.Link, contentDescription = null) },
-                trailingIcon = {
-                    if (link.isNotEmpty()) {
-                        IconButton(onClick = onClearLink) {
-                            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.rs_clear_link))
-                        }
-                    }
-                },
+                placeholder = stringResource(R.string.rs_input_placeholder),
+                leadingIcon = Icons.Outlined.Link,
                 minLines = 3,
                 maxLines = 6,
-                shape = MaterialTheme.shapes.large,
-                colors = glassFieldColors,
+                onClear = onClearLink,
             )
 
-            OutlinedTextField(
+            NieveGlassTextField(
                 value = pwd,
                 onValueChange = onPwdChange,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.rs_extract_code_optional)) },
-                placeholder = { Text(stringResource(R.string.rs_auto_or_manual)) },
-                trailingIcon = {
-                    if (pwd.isNotEmpty()) {
-                        IconButton(onClick = onClearPwd) {
-                            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.rs_clear_code))
-                        }
-                    }
-                },
+                label = stringResource(R.string.rs_extract_code_optional),
+                placeholder = stringResource(R.string.rs_auto_or_manual),
                 singleLine = true,
-                shape = MaterialTheme.shapes.large,
-                colors = glassFieldColors,
+                onClear = onClearPwd,
             )
 
             val enabled = link.isNotBlank() && !isLoading
-            val buttonShape = RoundedCornerShape(16.dp)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-                    .clip(buttonShape)
-                    .background(
-                        brush = if (enabled) {
-                            Brush.horizontalGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.88f),
-                                    Color(0xFF8ED8FF),
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.92f),
-                                )
-                            )
-                        } else {
-                            Brush.horizontalGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f),
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
-                                )
-                            )
-                        },
-                        shape = buttonShape,
-                    )
-                    .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.20f), buttonShape)
-            ) {
-                Button(
-                    onClick = {
-                        viewModel.startVideoResolve(link, pwd)
-                    },
-                    modifier = Modifier.fillMaxSize(),
-                    enabled = enabled,
-                    shape = buttonShape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent,
-                        contentColor = Color.White,
-                        disabledContainerColor = Color.Transparent,
-                        disabledContentColor = Color.White.copy(alpha = 0.55f),
-                    ),
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp,
-                            color = Color.White,
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.rs_parsing))
-                    } else {
-                        Text(stringResource(R.string.rs_start_resolve))
-                    }
-                }
-            }
+            ResolveActionButton(
+                enabled = enabled,
+                loading = isLoading,
+                onClick = { viewModel.startVideoResolve(link, pwd) }
+            )
         }
 
         if (state is ResolveUiState.Error) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                )
+            // 错误提示：与玻璃面板同材质，用主题色描边区分"这是需要看的提示"，
+            // 不再用 M3 errorContainer 的整块粉底。
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .nieveGlass(RoundedCornerShape(18.dp))
+                    .border(
+                        1.dp,
+                        MaterialTheme.colorScheme.error.copy(alpha = 0.38f),
+                        RoundedCornerShape(18.dp)
+                    )
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.ErrorOutline,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = state.message,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Outlined.ErrorOutline,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = state.message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             }
         }
 
@@ -717,6 +655,83 @@ private fun ResolveInputContent(
 
 /** 主页快捷方式列数（4 列在窄屏也能放下两字标题，观感贴近桌面图标网格） */
 private const val HOME_SHORTCUT_COLUMNS = 4
+
+/**
+ * 解析主按钮：液态渐变胶囊 + 按下回弹。
+ *
+ * 比 M3 Button 多做的只有两件事：底色用的是带冰蓝的横向渐变（与壳层环境光同色系），
+ * 按下时整块轻微回弹（弹簧过冲），所以点下去"有手感"，不是一块死板矩形。
+ */
+@Composable
+private fun ResolveActionButton(
+    enabled: Boolean,
+    loading: Boolean,
+    onClick: () -> Unit
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (pressed && enabled) 0.97f else 1f,
+        animationSpec = spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessMediumLow),
+        label = "resolveActionPress"
+    )
+    val buttonShape = RoundedCornerShape(16.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(50.dp)
+            .scale(pressScale)
+            .clip(buttonShape)
+            .background(
+                brush = if (enabled) {
+                    Brush.horizontalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.88f),
+                            Color(0xFF8ED8FF),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.92f),
+                        )
+                    )
+                } else {
+                    Brush.horizontalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f),
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
+                        )
+                    )
+                },
+                shape = buttonShape,
+            )
+            .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.20f), buttonShape)
+            .clickable(
+                enabled = enabled,
+                interactionSource = interaction,
+                indication = ripple(bounded = true),
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (loading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = Color.White,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Text(
+                text = if (loading) {
+                    stringResource(R.string.rs_parsing)
+                } else {
+                    stringResource(R.string.rs_start_resolve)
+                },
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
+            )
+        }
+    }
+}
 
 /**
  * 主页快捷方式区块：展示已「添加到主页」的收藏链接。
@@ -744,48 +759,40 @@ private fun HomeShortcutsSection(
                 style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.weight(1f)
             )
-            TextButton(onClick = onOpenBookmarks) {
-                Icon(
-                    imageVector = Icons.Outlined.BookmarkBorder,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(text = stringResource(R.string.rs_manage), style = MaterialTheme.typography.labelLarge)
-            }
+            NieveGlassPillButton(
+                text = stringResource(R.string.rs_manage),
+                icon = Icons.Outlined.BookmarkBorder,
+                onClick = onOpenBookmarks
+            )
         }
 
         if (bookmarks.isEmpty()) {
             // 空态：引导到收藏页添加，避免这里只剩一片空白
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .nieveGlass(RoundedCornerShape(18.dp))
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.AddToHomeScreen,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                Icon(
+                    imageVector = Icons.Outlined.AddToHomeScreen,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = stringResource(R.string.rs_no_shortcuts),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
                     )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = stringResource(R.string.rs_no_shortcuts),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = stringResource(R.string.rs_shortcuts_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = stringResource(R.string.rs_shortcuts_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         } else {
@@ -811,31 +818,23 @@ private fun HomeShortcutsSection(
     }
 
     removing?.let { bookmark ->
-        AlertDialog(
+        NieveGlassDialog(
             onDismissRequest = { removing = null },
-            title = { Text(stringResource(R.string.rs_remove_from_home)) },
-            text = {
-                Text(
-                    text = stringResource(R.string.rs_remove_shortcut_msg, bookmark.title.ifBlank { bookmark.link }),
-                    style = MaterialTheme.typography.bodyMedium
-                )
+            title = stringResource(R.string.rs_remove_from_home),
+            confirmText = stringResource(R.string.rs_remove),
+            onConfirm = {
+                onRemove(bookmark)
+                removing = null
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onRemove(bookmark)
-                        removing = null
-                    }
-                ) {
-                    Text(text = stringResource(R.string.rs_remove), color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { removing = null }) {
-                    Text(text = stringResource(R.string.rs_cancel))
-                }
-            }
-        )
+            dismissText = stringResource(R.string.rs_cancel),
+            onDismiss = { removing = null }
+        ) {
+            Text(
+                text = stringResource(R.string.rs_remove_shortcut_msg, bookmark.title.ifBlank { bookmark.link }),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
@@ -859,7 +858,8 @@ private fun HomeShortcutTile(
             modifier = Modifier
                 .size(48.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.primaryContainer),
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f))
+                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.28f), RoundedCornerShape(16.dp)),
             contentAlignment = Alignment.Center
         ) {
             val label = homeTileLabel(bookmark)
@@ -867,7 +867,7 @@ private fun HomeShortcutTile(
                 Icon(
                     imageVector = Icons.Outlined.Link,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(22.dp)
                 )
             } else {
@@ -880,7 +880,7 @@ private fun HomeShortcutTile(
                         else -> MaterialTheme.typography.labelSmall
                     },
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = MaterialTheme.colorScheme.primary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(horizontal = 4.dp)
@@ -974,6 +974,9 @@ private fun ClipboardSuggestCard(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
+            // 底下垫一层高不透明度表面，玻璃再叠上去；即使卡片处在滚动边缘，
+            // 也不会把输入框的占位文字透上来。
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f), shape)
             .background(color = nieveGlassFill(), shape = shape)
             .background(nieveGlassHighlight(), shape)
             .border(1.dp, nieveGlassBorder(), shape)
@@ -1015,19 +1018,16 @@ private fun ClipboardSuggestCard(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(onClick = onDismiss) {
-                    Text(stringResource(R.string.rs_ignore), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Spacer(modifier = Modifier.width(4.dp))
-                Button(
+                NieveGlassPillButton(
+                    text = stringResource(R.string.rs_ignore),
+                    onClick = onDismiss
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                NieveGlassPillButton(
+                    text = stringResource(R.string.rs_paste_and_resolve),
                     onClick = onPaste,
-                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                ) {
-                    Text(stringResource(R.string.rs_paste_and_resolve))
-                }
+                    primary = true
+                )
             }
     }
 }

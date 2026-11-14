@@ -344,7 +344,7 @@ fun C139LoginScreen(
                                 showCookieDialog = false
                                 onSaved()
                             } else {
-                                SnackbarController.show(AppStrings.get(R.string.lg_c139_cookie_invalid))
+                                SnackbarController.showLoginError(AppStrings.get(R.string.lg_c139_cookie_invalid))
                             }
                         }
                     },

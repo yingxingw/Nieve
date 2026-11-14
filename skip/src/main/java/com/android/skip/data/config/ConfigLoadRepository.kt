@@ -32,11 +32,11 @@ class ConfigLoadRepository @Inject constructor() {
         val targetAppPackage = rootNode.packageName.toString()
         val targetConfig = configLoadSchemaMap[targetAppPackage]
 
-        return withContext(Dispatchers.Main) {
+        return withContext(Dispatchers.Default) {
             try {
-                val configuredTexts = targetConfig?.skipTexts.orEmpty()
-                val configuredTasks =
-                    createSkipByTextTasks(this, rootNode, configuredTexts, activityName)
+                val globalConfig = configLoadSchemaMap["*"]
+                val configs = listOfNotNull(targetConfig, globalConfig)
+                val configuredTask = createConfiguredTask(this, rootNode, configs, activityName)
                 // 内置兜底规则：云端配置缺失/过期时也能识别「跳过 / 我知道了 / 关闭」这类按钮。
                 // 严格模式仍只用用户配置，避免误点。
                 val builtinTasks = if (isStrict != true) {
@@ -44,11 +44,13 @@ class ConfigLoadRepository @Inject constructor() {
                 } else {
                     emptyList()
                 }
-                val skipByIdTasks =
-                    createSkipByIdTasks(this, rootNode, targetConfig?.skipIds, activityName)
-                val skipByBoundTasks =
-                    createSkipByBoundTasks(this, rootNode, targetConfig?.skipBounds, activityName)
-                val tasks = configuredTasks + builtinTasks + skipByIdTasks + skipByBoundTasks
+                val boundsTasks = createSkipByBoundTasks(
+                    this,
+                    rootNode,
+                    configs.flatMap { it.skipBounds.orEmpty() },
+                    activityName,
+                )
+                val tasks = listOf(configuredTask) + builtinTasks + boundsTasks
                 awaitFirstNonNullOrComplete(this, tasks)
             } catch (e: Exception) {
                 LogUtils.e(e)
@@ -58,19 +60,101 @@ class ConfigLoadRepository @Inject constructor() {
     }
 
     /**
+     * 把当前应用（以及「*」全局规则）的文本/ID 规则合并成一次 BFS。
+     * 订阅可能包含成百上千条规则，逐条 findAccessibilityNodeInfosByText 会把
+     * 每次窗口变化都变成大量重复遍历；这里一次遍历同时比对文本、描述和控件 ID。
+     */
+    private fun createConfiguredTask(
+        scope: CoroutineScope,
+        rootNode: AccessibilityNodeInfo,
+        configs: List<ConfigLoadSchema>,
+        activityName: String?,
+    ): Deferred<Rect?> = scope.async {
+        val texts = configs.flatMap { it.skipTexts.orEmpty() }
+            .filter { it.activityName == null || it.activityName == activityName }
+            .map { it to normalizeRuleText(it.text) }
+            .filter { it.second.isNotEmpty() }
+        val ids = configs.flatMap { it.skipIds.orEmpty() }
+            .filter { it.activityName == null || it.activityName == activityName }
+        if (texts.isEmpty() && ids.isEmpty()) return@async null
+
+        val queue = ArrayDeque<AccessibilityNodeInfo>()
+        queue.add(rootNode)
+        var guard = 0
+        while (queue.isNotEmpty() && guard++ < 4000) {
+            val node = queue.removeFirst()
+            val nodeText = node.text?.toString().orEmpty()
+            val nodeDesc = node.contentDescription?.toString().orEmpty()
+            val nodeId = node.viewIdResourceName.orEmpty()
+            val visible = node === rootNode || node.isVisibleToUser
+            val normalizedText = if (visible) normalizeRuleText(nodeText) else ""
+            val normalizedDesc = if (visible) normalizeRuleText(nodeDesc) else ""
+
+            val matchedText = if (visible) texts.firstOrNull { (rule, keyword) ->
+                val maxLength = rule.length
+                val hitText = normalizedText.contains(keyword) &&
+                    (maxLength == null || nodeText.length <= maxLength)
+                val hitDesc = normalizedDesc.contains(keyword)
+                hitText || hitDesc
+            }?.first else null
+            val matchedId = if (visible) ids.firstOrNull { it.id == nodeId } else null
+
+            if (matchedText != null || matchedId != null) {
+                matchedText?.click?.let { if (!it.isEmpty) return@async it }
+                matchedId?.click?.let { if (!it.isEmpty) return@async it }
+                val target = clickableSelfOrDescendant(node) ?: clickableAncestor(node) ?: node
+                val rect = Rect()
+                target.getBoundsInScreen(rect)
+                if (!rect.isEmpty) return@async rect
+            }
+
+            for (i in 0 until node.childCount) {
+                node.getChild(i)?.let { queue.add(it) }
+            }
+        }
+        null
+    }
+
+    /**
      * 内置按钮文案。云端规则没命中时这些仍然生效；带「同意」的低置信按钮只在
      * 开屏/广告类 Activity 中匹配，避免在隐私协议里替用户点同意。
      */
-    private fun builtinKeywords(activityName: String?): List<String> {
+    private fun builtinKeywords(activityName: String?, adContext: Boolean): List<String> {
         val base = listOf(
-            "跳过", "跳过广告", "跳过此广告", "跳过开屏广告", "点击跳过",
-            "关闭广告", "关闭", "我知道了", "知道了", "以后再说", "下次再说", "暂不",
+            "跳过", "跳过广告", "跳过此广告", "跳过开屏广告", "点击跳过", "跳过本次",
+            "关闭广告", "关闭弹窗", "点击关闭", "关闭",
+            "我知道了", "知道了", "以后再说", "下次再说", "暂不",
+            "同意并继续",
         )
         val adLikeActivity = activityName?.lowercase()?.let { name ->
             name.contains("splash") || name.contains("launch") ||
                 name.contains("advert") || name.contains("adactivity")
         } == true
-        return if (adLikeActivity) base + "同意" else base
+        return if (adLikeActivity || adContext) base + "同意" else base
+    }
+
+    /**
+     * 页面本身出现「广告 / 开屏 / 跳过」时，也把「同意」视作广告场景；
+     * 这样不会在普通隐私协议页无条件点同意。
+     */
+    private fun findAdContext(rootNode: AccessibilityNodeInfo): Boolean {
+        val queue = ArrayDeque<AccessibilityNodeInfo>()
+        queue.add(rootNode)
+        var guard = 0
+        while (queue.isNotEmpty() && guard++ < 1200) {
+            val node = queue.removeFirst()
+            val text = (
+                node.text?.toString().orEmpty() + " " +
+                    node.contentDescription?.toString().orEmpty()
+                )
+            if (text.contains("广告") || text.contains("开屏") || text.contains("跳过")) {
+                return true
+            }
+            for (i in 0 until node.childCount) {
+                node.getChild(i)?.let { queue.add(it) }
+            }
+        }
+        return false
     }
 
     private fun createBuiltinSkipTasks(
@@ -78,14 +162,39 @@ class ConfigLoadRepository @Inject constructor() {
         rootNode: AccessibilityNodeInfo,
         activityName: String?
     ): List<Deferred<Rect?>> {
-        val keywords = builtinKeywords(activityName)
+        val adContext = findAdContext(rootNode)
+        val keywords = builtinKeywords(activityName, adContext)
         return listOf(scope.async {
             val node = findMatchingNode(rootNode, keywords) ?: return@async null
-            val target = clickableAncestor(node) ?: node
+            val target = clickableSelfOrDescendant(node) ?: clickableAncestor(node) ?: node
             val rect = Rect()
             target.getBoundsInScreen(rect)
             rect.takeIf { !it.isEmpty }
         })
+    }
+
+    /** 文本节点自己可点时优先点自己；否则再找可点子节点。 */
+    private fun clickableSelfOrDescendant(node: AccessibilityNodeInfo): AccessibilityNodeInfo? =
+        if (node.isClickable) node else clickableDescendant(node)
+
+    private fun normalizeRuleText(value: String): String =
+        value.replace(Regex("[\\s\\u00A0\\u3000]+"), "").lowercase()
+
+    /** 文本节点自己不可点击时，先看它的直接子节点（Compose/Flutter 常见）。 */
+    private fun clickableDescendant(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        val queue = ArrayDeque<AccessibilityNodeInfo>()
+        for (i in 0 until node.childCount) {
+            node.getChild(i)?.let { queue.add(it) }
+        }
+        var guard = 0
+        while (queue.isNotEmpty() && guard++ < 40) {
+            val child = queue.removeFirst()
+            if (child.isClickable) return child
+            for (i in 0 until child.childCount) {
+                child.getChild(i)?.let { queue.add(it) }
+            }
+        }
+        return null
     }
 
     /** BFS 遍历一次，同时比对 text 与 contentDescription；优先返回可点击节点。 */
@@ -102,16 +211,20 @@ class ConfigLoadRepository @Inject constructor() {
             val text = (
                 node.text?.toString().orEmpty() + " " +
                     node.contentDescription?.toString().orEmpty()
-                ).replace(" ", "")
-            if (keywords.any { text.contains(it.replace(" ", "")) }) {
-                if (node.isClickable) return node
-                if (fallback == null) fallback = node
+                )
+            val normalized = normalizeRuleText(text)
+            if (node === rootNode || node.isVisibleToUser) {
+                if (keywords.any { normalized.contains(normalizeRuleText(it)) }) {
+                    val selfTarget = clickableSelfOrDescendant(node)
+                    if (selfTarget != null) return selfTarget
+                    if (fallback == null) fallback = node
+                }
             }
             for (i in 0 until node.childCount) {
                 node.getChild(i)?.let { queue.add(it) }
             }
         }
-        return fallback?.let { clickableAncestor(it) ?: it }
+        return fallback?.let { clickableAncestor(it) ?: clickableDescendant(it) ?: it }
     }
 
     /** 文本节点通常不可点击，向上找最多 4 层可点击父容器。 */

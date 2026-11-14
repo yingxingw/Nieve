@@ -45,6 +45,7 @@ class MyAccessibilityService : AccessibilityService() {
     private var isShowTip: Boolean = false
     private var isStrict: Boolean = false
     private var scanTimes: Int = 0
+    private var lastScanAt: Long = 0L
 
     private val clickedRect: MutableSet<String> = mutableSetOf()
     private val serviceScope = CoroutineScope(Dispatchers.Default + Job())
@@ -92,11 +93,28 @@ class MyAccessibilityService : AccessibilityService() {
             val rootNodePackageName = rootNode.packageName.toString()
             if (rootNodePackageName != appPackageName) {
                 scanTimes = 0
+                lastScanAt = 0L
                 clickedRect.clear()
                 appPackageName = rootNodePackageName
             }
 
-            if (!whiteListRepository.isAppInWhiteList(rootNodePackageName) && (isStrict || scanTimes < 200)) {
+            val eventActivity = getActivityName(event)
+            if (eventActivity != null && eventActivity != appActivityName) {
+                // 切 Activity（尤其开屏 -> 主页）后重新获得扫描额度，
+                // 否则 200 次内容变化后广告按钮才出现就永远扫不到。
+                appActivityName = eventActivity
+                scanTimes = 0
+                lastScanAt = 0L
+                // 新页面的按钮可能恰好落在上一页点过的坐标；不清掉会把整页广告都当成“已点过”。
+                clickedRect.clear()
+            }
+
+            val now = android.os.SystemClock.uptimeMillis()
+            if (!whiteListRepository.isAppInWhiteList(rootNodePackageName) &&
+                (isStrict || scanTimes < 1500) &&
+                now - lastScanAt >= 180L
+            ) {
+                lastScanAt = now
                 val that = this
                 serviceScope.launch {
                     val targetRect =

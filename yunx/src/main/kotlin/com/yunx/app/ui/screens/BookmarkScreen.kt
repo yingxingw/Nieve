@@ -93,7 +93,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.yunx.app.shell.NieveGlassChip
+import com.yunx.app.shell.NieveGlassDialog
 import com.yunx.app.shell.NieveGlassIconButton
+import com.yunx.app.shell.NieveGlassTextField
 import com.yunx.app.shell.nieveGlassBorder
 import com.yunx.app.shell.nieveGlassFill
 import com.yunx.app.shell.nieveGlassHighlight
@@ -631,24 +634,32 @@ internal fun AddToBookmarkDialog(
     var customCategory by remember { mutableStateOf("") }
     val isCustom = selectedCategory == CUSTOM_CATEGORY
 
-    AlertDialog(
+    NieveGlassDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.rs_add_to_bookmark)) },
-        text = {
+        title = stringResource(R.string.rs_add_to_bookmark),
+        confirmText = stringResource(R.string.rs_bookmark),
+        onConfirm = {
+            onConfirm(
+                titleInput.trim(),
+                if (isCustom) customCategory.trim() else selectedCategory
+            )
+        },
+        confirmEnabled = !(isCustom && customCategory.isBlank()),
+        dismissText = stringResource(R.string.rs_cancel),
+        onDismiss = onDismiss
+    ) {
+            // ★ 不要再套 verticalScroll：NieveGlassDialog 的内容区本身已可滚动，
+            //   内层再 scrolling 会拿到无限高度约束，直接抛 IllegalStateException。
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 420.dp)
-                    .verticalScroll(rememberScrollState()),
+                modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedTextField(
+                NieveGlassTextField(
                     value = titleInput,
                     onValueChange = { titleInput = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.rs_title_optional)) },
+                    label = stringResource(R.string.rs_title_optional),
                     singleLine = true,
-                    shape = MaterialTheme.shapes.large
+                    onClear = { titleInput = "" }
                 )
                 Text(
                     text = stringResource(R.string.rs_category),
@@ -660,16 +671,16 @@ internal fun AddToBookmarkDialog(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // 「自定义」置顶显示，方便直接新建分类（过滤分类里同名字项，避免出现两个"自定义"chip）
-                    FilterChip(
+                    NieveGlassChip(
+                        text = stringResource(R.string.rs_custom),
                         selected = isCustom,
-                        onClick = { selectedCategory = CUSTOM_CATEGORY },
-                        label = { Text(stringResource(R.string.rs_custom)) }
+                        onClick = { selectedCategory = CUSTOM_CATEGORY }
                     )
                     categories.filter { it != CUSTOM_CATEGORY }.forEach { cat ->
-                        FilterChip(
+                        NieveGlassChip(
+                            text = categoryLabel(cat),
                             selected = selectedCategory == cat,
-                            onClick = { selectedCategory = cat },
-                            label = { Text(categoryLabel(cat)) }
+                            onClick = { selectedCategory = cat }
                         )
                     }
                 }
@@ -678,32 +689,16 @@ internal fun AddToBookmarkDialog(
                     enter = expandVertically(spatialDefault()) + fadeIn(effectsDefault()),
                     exit = shrinkVertically(spatialFast()) + fadeOut(effectsFast())
                 ) {
-                    OutlinedTextField(
+                    NieveGlassTextField(
                         value = customCategory,
                         onValueChange = { customCategory = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text(stringResource(R.string.rs_custom_category)) },
+                        label = stringResource(R.string.rs_custom_category),
                         singleLine = true,
-                        shape = MaterialTheme.shapes.large
+                        onClear = { customCategory = "" }
                     )
                 }
             }
-        },
-        confirmButton = {
-            Button(
-                enabled = !(isCustom && customCategory.isBlank()),
-                onClick = {
-                    onConfirm(
-                        titleInput.trim(),
-                        if (isCustom) customCategory.trim() else selectedCategory
-                    )
-                }
-            ) { Text(stringResource(R.string.rs_bookmark)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.rs_cancel)) }
-        }
-    )
+    }
 }
 
 /** 修改分类弹窗 */

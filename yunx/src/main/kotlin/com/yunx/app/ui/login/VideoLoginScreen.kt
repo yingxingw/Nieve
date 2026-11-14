@@ -478,7 +478,7 @@ fun VideoLoginScreen(
                                 showCookieDialog = false
                                 onSaved()
                             } else {
-                                SnackbarController.show(AppStrings.get(R.string.lg_cookie_invalid_expired))
+                                SnackbarController.showLoginError(AppStrings.get(R.string.lg_cookie_invalid_expired))
                             }
                         }
                     },
@@ -651,7 +651,7 @@ private fun ManualCookieLoginScreen(
                             SnackbarController.show(AppStrings.get(R.string.lg_login_success))
                             onSaved()
                         } else {
-                            SnackbarController.show(AppStrings.get(R.string.lg_cookie_invalid_expired))
+                            SnackbarController.showLoginError(AppStrings.get(R.string.lg_cookie_invalid_expired))
                         }
                     }
                 },

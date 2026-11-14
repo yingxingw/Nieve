@@ -12,15 +12,10 @@ import com.android.skip.dataclass.ConfigState
 import com.android.skip.dataclass.LoadSkipBound
 import com.android.skip.dataclass.LoadSkipId
 import com.android.skip.dataclass.LoadSkipText
-import com.android.skip.util.DataStoreUtils
-import com.blankj.utilcode.util.LogUtils
 import com.blankj.utilcode.util.StringUtils.getString
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.yaml.snakeyaml.Yaml
-import java.net.URL
 import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -33,47 +28,87 @@ class ConfigReadRepository @Inject constructor(
         MutableLiveData(ConfigPostSchema(ConfigState.FAIL, getString(R.string.invalid_config)))
     val configPostState: LiveData<ConfigPostSchema> = _configPostState
 
+    /**
+     * 读取所有启用的订阅源并合并。远程地址失败时优先回退到上一次缓存，
+     * 因此断网也不会把已经导入的规则立刻清空。
+     */
     suspend fun readConfig() = withContext(Dispatchers.IO) {
-        val customContent = DataStoreUtils.getSyncData(
-            getString(R.string.store_custom_config),
-            getString(R.string.store_default_config)
-        )
-        getFromJson(getFromYaml(getFromUrl(customContent)))
-    }
+        val defaultUrl = getString(R.string.store_default_config)
+        val subscriptions = SubscriptionStore.ensureSeeded(defaultUrl)
+        val enabled = subscriptions.filter { it.enabled }
+        if (enabled.isEmpty()) {
+            return@withContext ConfigPostSchema(
+                ConfigState.SUCCESS,
+                "没有启用的订阅源",
+                emptyList(),
+            )
+        }
 
-    private suspend fun getFromUrl(customContent: String): String {
-        return try {
-            val parsedUrl = URL(customContent)
-            if (parsedUrl.protocol == "http" || parsedUrl.protocol == "https") {
-                return myApiNetwork.fetchConfigFromUrl(customContent)
+        val allConfigs = mutableListOf<ConfigReadSchema>()
+        val messages = mutableListOf<String>()
+        var loadedAny = false
+
+        for (subscription in enabled) {
+            val remoteContent = if (subscription.url.isNotBlank() && !subscription.localOverride) {
+                runCatching {
+                    myApiNetwork.fetchConfigFromUrl(subscription.url)
+                }.getOrNull()
+            } else {
+                null
             }
-            customContent
-        } catch (e: Exception) {
-            customContent
+            val content = remoteContent ?: subscription.content
+            if (content.isBlank()) {
+                val message = if (subscription.url.isNotBlank()) {
+                    "「${subscription.name}」拉取失败"
+                } else {
+                    "「${subscription.name}」没有规则内容"
+                }
+                messages.add(message)
+                SubscriptionStore.update(subscription.copy(lastError = message))
+                continue
+            }
+
+            val parsed = SubscriptionParser.parse(content)
+            if (parsed.configs.isEmpty()) {
+                val message = if (parsed.note.isNotBlank()) {
+                    "「${subscription.name}」${parsed.note}"
+                } else {
+                    "「${subscription.name}」没有可识别的基础规则"
+                }
+                messages.add(message)
+                SubscriptionStore.update(subscription.copy(lastError = message))
+                continue
+            }
+
+            allConfigs.addAll(parsed.configs)
+            loadedAny = true
+            val fallbackMessage = if (remoteContent == null && subscription.url.isNotBlank()) {
+                "远程更新失败，已使用上次缓存"
+            } else {
+                ""
+            }
+            SubscriptionStore.cacheParsed(
+                subscription = subscription,
+                content = content,
+                parsed = parsed,
+                error = fallbackMessage,
+            )
         }
-    }
 
-    private fun getFromYaml(customContent: String): String {
-        return try {
-            val yamlContent = Yaml().load<List<ConfigReadSchema>>(customContent)
-            val gson = Gson()
-            gson.toJson(yamlContent)
-        } catch (e: Exception) {
-            customContent
+        val merged = mergeConfigs(allConfigs)
+        if (!loadedAny) {
+            return@withContext ConfigPostSchema(
+                ConfigState.FAIL,
+                messages.joinToString("；").ifBlank { getString(R.string.invalid_config) },
+                null,
+            )
         }
-    }
 
-    private fun getFromJson(customContent: String): ConfigPostSchema {
-        return try {
-            val gson = Gson()
-            val type = object : TypeToken<List<ConfigReadSchema>>() {}.type
-
-            val configReadSchemaList = gson.fromJson<List<ConfigReadSchema>>(customContent, type)
-
-            ConfigPostSchema(ConfigState.SUCCESS, md5(unicodeToChinese(customContent)), configReadSchemaList)
-        } catch (e: Exception) {
-            ConfigPostSchema(ConfigState.FAIL, getString(R.string.invalid_config), null)
-        }
+        ConfigPostSchema(
+            ConfigState.SUCCESS,
+            md5(Gson().toJson(merged)),
+            merged,
+        )
     }
 
     fun changeConfigPostState(configPostSchema: ConfigPostSchema) {
@@ -82,52 +117,61 @@ class ConfigReadRepository @Inject constructor(
 
     fun handleConfig(configPostSchema: ConfigPostSchema): Map<String, ConfigLoadSchema>? {
         return try {
-            configPostSchema.configReadSchemaList?.associate { config ->
+            val list = mergeConfigs(configPostSchema.configReadSchemaList.orEmpty())
+            list.associate { config ->
                 val newSkipTexts = config.skipTexts?.map { skipText ->
-                    val clickRect = skipText.click?.let { c ->
-                        convertClick(c)
-                    }
                     LoadSkipText(
                         text = skipText.text,
                         activityName = skipText.activityName,
                         length = skipText.length,
-                        click = clickRect
+                        click = skipText.click?.let(::convertClick),
                     )
                 }
-
                 val newSkipIds = config.skipIds?.map { skipId ->
-                    val clickRect = skipId.click?.let { c ->
-                        convertClick(c)
-                    }
                     LoadSkipId(
                         id = skipId.id,
                         activityName = skipId.activityName,
-                        click = clickRect
+                        click = skipId.click?.let(::convertClick),
                     )
                 }
-
                 val newSkipBounds = config.skipBounds?.map { skipBound ->
-                    val clickRect = skipBound.click?.let { c ->
-                        convertClick(c)
-                    }
                     LoadSkipBound(
                         bound = convertBound(skipBound.bound),
                         activityName = skipBound.activityName,
-                        click = clickRect
+                        click = skipBound.click?.let(::convertClick),
                     )
                 }
-
                 config.packageName to ConfigLoadSchema(
                     config.packageName,
                     skipTexts = newSkipTexts,
                     skipIds = newSkipIds,
-                    skipBounds = newSkipBounds
+                    skipBounds = newSkipBounds,
                 )
             }
         } catch (e: Exception) {
-            LogUtils.e(e)
             null
         }
+    }
+
+    /** 同一应用的多个订阅合并，文本/ID/坐标去重，避免重复创建大量匹配任务。 */
+    fun mergeConfigs(configs: List<ConfigReadSchema>): List<ConfigReadSchema> {
+        val merged = LinkedHashMap<String, ConfigReadSchema>()
+        for (config in configs) {
+            val old = merged[config.packageName]
+            if (old == null) {
+                merged[config.packageName] = config
+            } else {
+                merged[config.packageName] = old.copy(
+                    skipTexts = (old.skipTexts.orEmpty() + config.skipTexts.orEmpty())
+                        .distinctBy { "${it.text}|${it.activityName}|${it.length}" },
+                    skipIds = (old.skipIds.orEmpty() + config.skipIds.orEmpty())
+                        .distinctBy { "${it.id}|${it.activityName}" },
+                    skipBounds = (old.skipBounds.orEmpty() + config.skipBounds.orEmpty())
+                        .distinctBy { "${it.bound}|${it.activityName}" },
+                )
+            }
+        }
+        return merged.values.toList()
     }
 
     private fun convertClick(click: String): Rect {
@@ -140,19 +184,8 @@ class ConfigReadRepository @Inject constructor(
         return Rect(left, top, right, bottom)
     }
 
-    // #region MD5
     private fun md5(input: String): String {
         val bytes = MessageDigest.getInstance("MD5").digest(input.toByteArray(Charsets.UTF_8))
         return bytes.joinToString("") { "%02x".format(it) }
-    }
-    // #endregion MD5
-
-    private fun unicodeToChinese(unicodeStr: String): String {
-        val unicodeRegex = Regex("""\\u([0-9A-Fa-f]{4})""")
-
-        return unicodeRegex.replace(unicodeStr) { matchResult ->
-            val unicodeValue = matchResult.groupValues[1].toInt(16)
-            unicodeValue.toChar().toString()
-        }
     }
 }

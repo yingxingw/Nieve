@@ -20,6 +20,7 @@ package com.yunx.app.ui.resolve
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
@@ -45,7 +46,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.ArrowUpward
+import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.outlined.BookmarkAdd
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Folder
@@ -125,6 +126,14 @@ import com.yunx.app.ui.screens.Pan123SaveContent
 import com.yunx.app.ui.screens.SaveToCloudContent
 import com.yunx.app.ui.screens.UCSaveContent
 import com.yunx.app.ui.screens.XunleiSaveContent
+import com.yunx.app.shell.NieveGlassDialog
+import com.yunx.app.shell.NieveGlassIconButton
+import com.yunx.app.shell.NieveGlassPillButton
+import com.yunx.app.shell.NieveGlassTextField
+import com.yunx.app.shell.nieveGlass
+import com.yunx.app.shell.nieveGlassBorder
+import com.yunx.app.shell.nieveGlassFill
+import com.yunx.app.shell.nieveGlassHighlight
 import com.yunx.app.ui.viewmodel.BaiduCloudViewModel
 import com.yunx.app.ui.viewmodel.C139CloudViewModel
 import com.yunx.app.ui.viewmodel.GuangYaCloudViewModel
@@ -261,12 +270,12 @@ fun ShareDetailScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (viewModel.multiSelectMode) {
                             // 多选模式：取消选择
-                            IconButton(onClick = { viewModel.exitMultiSelect() }) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = stringResource(R.string.rs_cancel_selection)
-                                )
-                            }
+                            NieveGlassIconButton(
+                                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.rs_cancel_selection),
+                                onClick = { viewModel.exitMultiSelect() }
+                            )
+                            Spacer(Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = stringResource(
@@ -286,29 +295,29 @@ fun ShareDetailScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            TextButton(onClick = { viewModel.toggleSelectAll(displayFiles) }) {
-                                Text(
-                                    if (viewModel.selected.size == displayFiles.size) {
-                                        stringResource(R.string.rs_deselect_all)
-                                    } else {
-                                        stringResource(R.string.rs_select_all)
-                                    }
-                                )
-                            }
+                            NieveGlassPillButton(
+                                text = if (viewModel.selected.size == displayFiles.size) {
+                                    stringResource(R.string.rs_deselect_all)
+                                } else {
+                                    stringResource(R.string.rs_select_all)
+                                },
+                                onClick = { viewModel.toggleSelectAll(displayFiles) },
+                                primary = true
+                            )
                         } else {
-                            IconButton(onClick = onExit) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = stringResource(R.string.rs_back)
-                                )
-                            }
+                            NieveGlassIconButton(
+                                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.rs_back),
+                                onClick = onExit
+                            )
+                            Spacer(Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = session.title.ifBlank {
                                         stringResource(R.string.rs_share_content)
                                     },
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Medium,
+                                    fontWeight = FontWeight.SemiBold,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -322,36 +331,31 @@ fun ShareDetailScreen(
                                             files.size
                                         )
                                     },
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            IconButton(onClick = { showAddBookmark = true }) {
-                                Icon(
-                                    imageVector = Icons.Outlined.BookmarkAdd,
-                                    contentDescription = stringResource(R.string.rs_add_to_bookmark),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            IconButton(onClick = { showSearch = !showSearch }) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Search,
-                                    contentDescription = if (showSearch) {
-                                        stringResource(R.string.rs_close_search)
-                                    } else {
-                                        stringResource(R.string.rs_search_files)
-                                    },
-                                    tint = if (showSearch) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    }
-                                )
-                            }
+                            Spacer(Modifier.width(8.dp))
+                            NieveGlassIconButton(
+                                icon = Icons.Outlined.BookmarkAdd,
+                                contentDescription = stringResource(R.string.rs_add_to_bookmark),
+                                onClick = { showAddBookmark = true }
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            NieveGlassIconButton(
+                                icon = Icons.Outlined.Search,
+                                contentDescription = if (showSearch) {
+                                    stringResource(R.string.rs_close_search)
+                                } else {
+                                    stringResource(R.string.rs_search_files)
+                                },
+                                onClick = { showSearch = !showSearch }
+                            )
                         }
                     }
                     // 可点击面包屑（多选模式下隐藏）
                     if (!viewModel.multiSelectMode) {
+                        Spacer(Modifier.height(10.dp))
                         CrumbBar(
                             rootTitle = session.title.ifBlank {
                                 stringResource(R.string.rs_share_content)
@@ -371,24 +375,13 @@ fun ShareDetailScreen(
                     ) {
                         Column {
                             Spacer(modifier = Modifier.height(10.dp))
-                            OutlinedTextField(
+                            NieveGlassTextField(
                                 value = searchQuery,
                                 onValueChange = { searchQuery = it },
-                                modifier = Modifier.fillMaxWidth(),
-                                placeholder = { Text(stringResource(R.string.rs_search_current_dir)) },
-                                leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-                                trailingIcon = {
-                                    if (searchQuery.isNotEmpty()) {
-                                        IconButton(onClick = { searchQuery = "" }) {
-                                            Icon(
-                                                Icons.Filled.Close,
-                                                contentDescription = stringResource(R.string.rs_clear_search)
-                                            )
-                                        }
-                                    }
-                                },
+                                placeholder = stringResource(R.string.rs_search_current_dir),
+                                leadingIcon = Icons.Outlined.Search,
                                 singleLine = true,
-                                shape = MaterialTheme.shapes.large
+                                onClear = { searchQuery = "" }
                             )
                         }
                     }
@@ -420,19 +413,33 @@ fun ShareDetailScreen(
 
             if (displayFiles.isEmpty()) {
                 item {
-                    Text(
-                        text = if (files.isEmpty()) {
-                            stringResource(R.string.rs_dir_empty)
-                        } else {
-                            stringResource(R.string.rs_no_match_files, searchQuery.trim())
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    // 空态：玻璃卡 + 图标，避免只剩一行灰字漂在背景上
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 32.dp),
-                        textAlign = TextAlign.Center
-                    )
+                            .padding(top = 8.dp)
+                            .nieveGlass(RoundedCornerShape(20.dp))
+                            .padding(vertical = 28.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = if (files.isEmpty()) Icons.Outlined.FolderOpen else Icons.Outlined.Search,
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        Text(
+                            text = if (files.isEmpty()) {
+                                stringResource(R.string.rs_dir_empty)
+                            } else {
+                                stringResource(R.string.rs_no_match_files, searchQuery.trim())
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
 
@@ -466,7 +473,9 @@ fun ShareDetailScreen(
                     },
                     selected = viewModel.selected.contains(file),
                     showCheckbox = viewModel.multiSelectMode,
-                    badge = fileBadge?.let { b -> { b(file) } }
+                    badge = fileBadge?.let { b -> { b(file) } },
+                    // 进/出目录时行做位移动画，列表不会"跳"一下换内容
+                    modifier = Modifier.animateItem()
                 )
             }
 
@@ -545,68 +554,57 @@ fun ShareDetailScreen(
     // 百度 >300MB 限速提示弹窗（解析页百度分享下载，可勾选不再显示）
     if (showBaiduLimitDialog) {
         var neverShow by remember { mutableStateOf(baiduLimitDismissed) }
-        AlertDialog(
+        NieveGlassDialog(
             onDismissRequest = { showBaiduLimitDialog = false },
-            title = { Text(stringResource(R.string.rs_large_file_title)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            title = stringResource(R.string.rs_large_file_title),
+            confirmText = stringResource(R.string.rs_continue_download),
+            onConfirm = {
+                showBaiduLimitDialog = false
+                baiduSettings.baiduLimitHintDismissed = neverShow
+                baiduLimitDismissed = neverShow
+                pendingBaiduAction?.invoke()
+                pendingBaiduAction = null
+            },
+            dismissText = stringResource(R.string.rs_cancel),
+            onDismiss = { showBaiduLimitDialog = false }
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = stringResource(R.string.rs_baidu_limit_message),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = neverShow, onCheckedChange = { neverShow = it })
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = stringResource(R.string.rs_baidu_limit_message),
+                        stringResource(R.string.rs_dont_show_again),
                         style = MaterialTheme.typography.bodyMedium
                     )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = neverShow, onCheckedChange = { neverShow = it })
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            stringResource(R.string.rs_dont_show_again),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showBaiduLimitDialog = false
-                        baiduSettings.baiduLimitHintDismissed = neverShow
-                        baiduLimitDismissed = neverShow
-                        pendingBaiduAction?.invoke()
-                        pendingBaiduAction = null
-                    }
-                ) { Text(stringResource(R.string.rs_continue_download)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showBaiduLimitDialog = false }) {
-                    Text(stringResource(R.string.rs_cancel))
                 }
             }
-        )
+        }
     }
 
     // 批量处理中：加载弹窗（批量下载显示获取进度，如 "正在获取下载链接 2/5"；可中断）
     if (viewModel.isBatchWorking) {
-        AlertDialog(
+        NieveGlassDialog(
             onDismissRequest = { },
-            confirmButton = { },
-            dismissButton = {
-                TextButton(onClick = { viewModel.cancelBatch() }) {
-                    Text(stringResource(R.string.rs_interrupt), color = MaterialTheme.colorScheme.error)
-                }
-            },
-            title = { Text(stringResource(R.string.rs_batch_processing)) },
-            text = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    YunXLoading(modifier = Modifier.size(24.dp))
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = viewModel.batchProgress?.let {
-                            stringResource(R.string.rs_fetching_link_progress, it)
-                        } ?: stringResource(R.string.rs_batch_processing_wait),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+            title = stringResource(R.string.rs_batch_processing),
+            dismissText = stringResource(R.string.rs_interrupt),
+            onDismiss = { viewModel.cancelBatch() }
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                YunXLoading(modifier = Modifier.size(24.dp))
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = viewModel.batchProgress?.let {
+                        stringResource(R.string.rs_fetching_link_progress, it)
+                    } ?: stringResource(R.string.rs_batch_processing_wait),
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
-        )
+        }
     }
 
     // 添加至收藏弹窗（当前分享链接，支持自定义标题与分类）
@@ -689,68 +687,67 @@ fun ShareDetailScreen(
  */
 @Composable
 private fun GuestBrowseNotice(platform: SharePlatform) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .nieveGlass(RoundedCornerShape(18.dp))
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Info,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = when (platform) {
-                    SharePlatform.QUARK ->
-                        stringResource(R.string.rs_guest_notice_quark)
-                    SharePlatform.UC ->
-                        stringResource(R.string.rs_guest_notice_uc)
-                    else ->
-                        stringResource(R.string.rs_guest_notice_default)
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Icon(
+            imageVector = Icons.Outlined.Info,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = when (platform) {
+                SharePlatform.QUARK ->
+                    stringResource(R.string.rs_guest_notice_quark)
+                SharePlatform.UC ->
+                    stringResource(R.string.rs_guest_notice_uc)
+                else ->
+                    stringResource(R.string.rs_guest_notice_default)
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
 @Composable
 internal fun BackToParentItem(onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .nieveGlass(MaterialTheme.shapes.large)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f))
+                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.26f), CircleShape),
+            contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Outlined.ArrowUpward,
+                imageVector = Icons.Rounded.ArrowUpward,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(18.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(
-                text = stringResource(R.string.rs_go_up),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium
-            )
         }
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = stringResource(R.string.rs_go_up),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 
@@ -779,44 +776,60 @@ internal fun CrumbBar(
         modifier = modifier
             .fillMaxWidth()
             .horizontalScroll(scroll)
-            .padding(start = 8.dp, top = 4.dp)
+            .padding(top = 2.dp)
     ) {
         crumbs.forEachIndexed { i, name ->
             val isLast = i == crumbs.size - 1
+            val chipShape = RoundedCornerShape(50)
             if (!isLast) {
-                // 可点击层级：点击回退到该目录
-                Text(
-                    text = name,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                // 可点击层级：玻璃小胶囊，点击回退到该目录
+                Box(
                     modifier = Modifier
+                        .clip(chipShape)
+                        .background(nieveGlassFill(), chipShape)
+                        .background(nieveGlassHighlight(), chipShape)
+                        .border(1.dp, nieveGlassBorder(), chipShape)
                         .clickable { onNavigate(i) }
-                        .padding(horizontal = 4.dp, vertical = 2.dp)
-                )
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                ) {
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
+                }
                 Icon(
                     imageVector = Icons.Outlined.ChevronRight,
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(14.dp),
                     tint = MaterialTheme.colorScheme.outline
                 )
             } else {
-                // 当前层：高亮 + 文件夹图标（不可点）
-                Icon(
-                    imageVector = Icons.Outlined.FolderOpen,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = name,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    modifier = Modifier.padding(end = 4.dp)
-                )
+                // 当前层：主题色淡染 + 文件夹图标（不可点）
+                Row(
+                    modifier = Modifier
+                        .clip(chipShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), chipShape)
+                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.32f), chipShape)
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.FolderOpen,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1
+                    )
+                }
             }
         }
     }
@@ -842,28 +855,36 @@ internal fun ShareFileRow(
     /** 列表项动画等（调用方传入 Modifier.animateItem()） */
     modifier: Modifier = Modifier
 ) {
-    Card(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            // ★ 必须先裁到卡片圆角再挂点击/长按：combinedClickable 位于 Card 的 Surface 之外，
+            // ★ 必须先裁到卡片圆角再挂点击/长按：combinedClickable 在背景之外，
             //   不裁剪的话点击与长按涟漪会画到圆角之外（四角溢出）。
             .clip(shape)
+            .then(
+                if (selected) {
+                    Modifier
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), shape)
+                        .border(
+                            1.dp,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.36f),
+                            shape
+                        )
+                } else {
+                    Modifier
+                        .background(color = nieveGlassFill(), shape = shape)
+                        .background(nieveGlassHighlight(), shape)
+                        .border(1.dp, nieveGlassBorder(), shape)
+                }
+            )
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
-            ),
-        shape = shape,
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceContainerLow
-            }
-        )
+            )
     ) {
         // ★ 行内容交给 Material 3 的 ListItem（不再手写 Row + Column）：
         //   行高、内边距、标题/副标题字号层级由组件按 M3 规范给出，七个网盘页与本页共用同一形态。
-        //   外层保留 Card 负责圆角、选中底色与涟漪裁剪，故 ListItem 容器设为透明。
+        //   玻璃底/选中底色由外层 Box 负责，故 ListItem 容器设为透明。
         ListItem(
             headlineContent = {
                 // 文件名 + 徽章（同一行；展示方式由「主题与外观 → 文件名显示」决定：跑马灯 / 多行折行）
@@ -969,7 +990,8 @@ private fun FileLeadingIcon(file: ShareFile) {
         modifier = Modifier
             .size(40.dp)
             .clip(RoundedCornerShape(9.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+            .background(nieveGlassFill())
+            .border(1.dp, nieveGlassBorder(), RoundedCornerShape(9.dp)),
         contentAlignment = Alignment.Center
     ) {
         Icon(
@@ -990,27 +1012,22 @@ private fun FileLeadingIcon(file: ShareFile) {
 /** 行首圆形图标（文件夹 / 没有缩略图的文件）：网盘页、解析页与移动/转存选择器共用同一形态 */
 @Composable
 private fun FileIconBadge(file: ShareFile) {
-    Surface(
-        modifier = Modifier.size(40.dp),
-        shape = CircleShape,
-        color = if (file.isdir) {
-            MaterialTheme.colorScheme.secondaryContainer
-        } else {
-            MaterialTheme.colorScheme.surfaceContainerHighest
-        }
+    val tint = if (file.isdir) MaterialTheme.colorScheme.primary
+    else MaterialTheme.colorScheme.onSurfaceVariant
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(tint.copy(alpha = 0.12f), CircleShape)
+            .border(1.dp, tint.copy(alpha = 0.24f), CircleShape),
+        contentAlignment = Alignment.Center
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = if (file.isdir) Icons.Outlined.Folder else Icons.Outlined.InsertDriveFile,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = if (file.isdir) {
-                    MaterialTheme.colorScheme.onSecondaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                }
-            )
-        }
+        Icon(
+            imageVector = if (file.isdir) Icons.Outlined.Folder else Icons.Outlined.InsertDriveFile,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = tint
+        )
     }
 }
 

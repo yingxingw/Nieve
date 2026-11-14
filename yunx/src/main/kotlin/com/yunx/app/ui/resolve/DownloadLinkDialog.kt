@@ -31,24 +31,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.outlined.Download
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -57,12 +46,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yunx.app.data.network.model.DownloadLink
+import com.yunx.app.shell.NieveGlassDialog
+import com.yunx.app.shell.NieveGlassPillButton
+import com.yunx.app.shell.nieveGlass
 import com.yunx.app.ui.SnackbarController
 import com.yunx.app.ui.rememberGlobalSnackbarHostState
 
 /**
  * 下载直链弹窗：展示文件名与直链（长按直链复制），支持「开始下载」（分片多线程下载）。
  * 点「关闭」或弹窗外（管壁）关闭 = 放弃下载，由上层清理临时转存。
+ *
+ * ★ 改用 NieveGlassDialog（玻璃面板 + 弹出/回落动效），与解析页其它弹窗同一材质；
+ *   原来的 M3 AlertDialog 是白底方角，和整页玻璃语言对不上。
  */
 @Composable
 fun DownloadLinkDialog(
@@ -72,98 +67,68 @@ fun DownloadLinkDialog(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    // Dialog 内提示宿主（AlertDialog 为独立窗口）
+    // Dialog 内提示宿主（弹窗是独立窗口，需要自带 Snackbar 宿主）
     val snackbarHostState = rememberGlobalSnackbarHostState()
 
-    AlertDialog(
+    NieveGlassDialog(
         onDismissRequest = onDismiss,
-        title = {
+        title = link.filename.ifBlank { stringResource(R.string.sh_start_download) },
+        modifier = modifier,
+        confirmText = stringResource(R.string.sh_start_download),
+        onConfirm = onDownload,
+        dismissText = stringResource(R.string.sh_close),
+        onDismiss = onDismiss
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
             Text(
-                text = link.filename,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                text = stringResource(R.string.sh_direct_link_generated),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        },
-        text = {
-            // 内容超高时（横屏/小屏）可滚动，避免按钮被挤出屏幕
-            Column(
+            Text(
+                text = link.downloadUrl,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 420.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.sh_direct_link_generated),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    .nieveGlass(RoundedCornerShape(16.dp))
+                    .combinedClickable(
+                        onClick = {},
+                        onLongClickLabel = stringResource(R.string.sh_copy_download_link),
+                        onLongClick = {
+                            copyToClipboard(context, link.downloadUrl)
+                            SnackbarController.show(AppStrings.get(R.string.sh_download_link_copied))
+                        }
                     )
-                ) {
-                    Text(
-                        text = link.downloadUrl,
-                        modifier = Modifier
-                            .padding(12.dp)
-                            .combinedClickable(
-                                onClick = {},
-                                onLongClickLabel = stringResource(R.string.sh_copy_download_link),
-                                onLongClick = {
-                                    copyToClipboard(context, link.downloadUrl)
-                                    SnackbarController.show(AppStrings.get(R.string.sh_download_link_copied))
-                                }
-                            ),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 11.sp,
-                            lineHeight = 15.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 4,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                TextButton(onClick = {
+                    .padding(12.dp),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 11.sp,
+                    lineHeight = 15.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 4,
+                overflow = TextOverflow.Ellipsis
+            )
+            NieveGlassPillButton(
+                text = stringResource(R.string.sh_copy_download_link),
+                icon = Icons.Outlined.ContentCopy,
+                onClick = {
                     copyToClipboard(context, link.downloadUrl)
                     SnackbarController.show(AppStrings.get(R.string.sh_download_link_copied))
-                }) {
-                    Icon(Icons.Outlined.ContentCopy, contentDescription = null)
-                    Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.sh_copy_download_link))
                 }
-                Text(
-                    text = stringResource(R.string.sh_download_start_hint),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                // Dialog 内提示（AlertDialog 为独立窗口，需自带 Snackbar 宿主）
-                SnackbarHost(hostState = snackbarHostState)
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onDownload() }
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Download,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(stringResource(R.string.sh_start_download))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.sh_close))
-            }
-        },
-        modifier = modifier
-    )
+            )
+            Text(
+                text = stringResource(R.string.sh_download_start_hint),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(2.dp))
+            // Dialog 内提示（独立窗口，需自带 Snackbar 宿主）
+            SnackbarHost(hostState = snackbarHostState)
+        }
+    }
 }
 
 private fun copyToClipboard(context: Context, text: String) {

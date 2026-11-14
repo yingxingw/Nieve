@@ -293,7 +293,7 @@ fun QuarkLoginScreen(
                                 showCookieDialog = false
                                 onSaved()
                             } else {
-                                SnackbarController.show(AppStrings.get(R.string.lg_quark_cookie_invalid))
+                                SnackbarController.showLoginError(AppStrings.get(R.string.lg_quark_cookie_invalid))
                             }
                         }
                     },

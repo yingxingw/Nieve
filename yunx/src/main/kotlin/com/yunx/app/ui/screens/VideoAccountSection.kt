@@ -181,13 +181,11 @@ private fun VideoPlatformCardContent(
         verticalAlignment = Alignment.CenterVertically
     ) {
         // 平台 Logo：按图标自身形状原样画（不裁圆、不垫底色，理由见 PlatformLogos 的 KDoc）。
-        // 需要登录且当前没登录的平台压暗一档，一眼能看出「这个还没配账号」。
+        // 未登录不再压暗，避免图标颜色发灰；登录状态交给右侧文字和操作按钮表达。
         Image(
             painter = painterResource(platform.logoRes()),
             contentDescription = null,
-            modifier = Modifier
-                .size(40.dp)
-                .alpha(if (platform.needsLogin && account == null) 0.92f else 1f),
+            modifier = Modifier.size(40.dp),
             contentScale = ContentScale.Fit
         )
 

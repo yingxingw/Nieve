@@ -245,7 +245,7 @@ fun UCLoginScreen(
                                 showCookieDialog = false
                                 onSaved()
                             } else {
-                                SnackbarController.show(AppStrings.get(R.string.lg_uc_cookie_invalid))
+                                SnackbarController.showLoginError(AppStrings.get(R.string.lg_uc_cookie_invalid))
                             }
                         }
                     },

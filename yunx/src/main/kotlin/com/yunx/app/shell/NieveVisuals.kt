@@ -21,6 +21,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,25 +38,35 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.ripple
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -61,6 +74,10 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.yunx.app.ui.theme.effectsDefault
+import com.yunx.app.ui.theme.effectsFast
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * Nieve 的 Material3 配色：深色模式统一为纯黑底，浅色模式保持干净的冷白，
@@ -227,6 +244,240 @@ fun nieveGlassHighlight(): Brush {
     )
 }
 
+/**
+ * 液态玻璃面板修饰符（卡片 / 输入框 / 行容器统一材质）：
+ * 半透玻璃底 + 顶部高光 + 1dp 细描边，且**先裁圆角再画底**，圆角外不会漏出颜色。
+ */
+@Composable
+fun Modifier.nieveGlass(shape: Shape): Modifier = this
+    .clip(shape)
+    .background(color = nieveGlassFill(), shape = shape)
+    .background(nieveGlassHighlight(), shape)
+    .border(width = 1.dp, color = nieveGlassBorder(), shape = shape)
+
+/**
+ * 玻璃胶囊按钮：替代 M3 的 Button / TextButton。
+ *
+ * - [primary] = true：主题色淡染 + 主题色描边（确认类动作）；
+ *   false：纯玻璃底 + 中性描边（取消 / 次级动作）。
+ * - 按下有轻微回弹（弹簧缩放），与整页的 Expressive 动效同源。
+ */
+@Composable
+fun NieveGlassPillButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    primary: Boolean = false,
+    enabled: Boolean = true,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.94f else 1f,
+        animationSpec = spring(dampingRatio = 0.62f, stiffness = Spring.StiffnessMediumLow),
+        label = "nievePillPress",
+    )
+    val shape = RoundedCornerShape(50)
+    val contentColor = when {
+        !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+        primary -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+    Box(
+        modifier = modifier
+            .scale(scale)
+            .clip(shape)
+            .then(
+                if (primary) {
+                    Modifier
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = if (enabled) 0.16f else 0.07f), shape)
+                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = if (enabled) 0.40f else 0.16f), shape)
+                } else {
+                    Modifier
+                        .background(nieveGlassFill(), shape)
+                        .background(nieveGlassHighlight(), shape)
+                        .border(1.dp, nieveGlassBorder(), shape)
+                }
+            )
+            .clickable(
+                enabled = enabled,
+                interactionSource = interaction,
+                indication = ripple(bounded = true),
+                onClick = onClick,
+            )
+            .padding(horizontal = 18.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = contentColor,
+                )
+                Spacer(Modifier.width(6.dp))
+            }
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = if (primary) FontWeight.SemiBold else FontWeight.Medium,
+                color = contentColor,
+            )
+        }
+    }
+}
+
+/**
+ * 玻璃输入框：替代 M3 OutlinedTextField 在解析/搜索场景里的白底描边表单。
+ *
+ * 用 [BasicTextField] 自绘是为了让输入区与页面其它玻璃卡片同材质（同一个圆角、同一层高光、
+ * 同一根细描边），同时保留系统自带的选区、复制粘贴与输入法行为。
+ */
+@Composable
+fun NieveGlassTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String? = null,
+    label: String? = null,
+    leadingIcon: ImageVector? = null,
+    singleLine: Boolean = false,
+    minLines: Int = 1,
+    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
+    onClear: (() -> Unit)? = null,
+    enabled: Boolean = true,
+) {
+    val shape = RoundedCornerShape(18.dp)
+    val interaction = remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
+    val borderColor = if (focused) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.70f)
+    } else {
+        nieveGlassBorder()
+    }
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier.fillMaxWidth(),
+        enabled = enabled,
+        singleLine = singleLine,
+        minLines = minLines,
+        maxLines = maxLines,
+        textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+        interactionSource = interaction,
+        decorationBox = { innerTextField ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(shape)
+                    .background(color = nieveGlassFill(), shape = shape)
+                    .background(nieveGlassHighlight(), shape)
+                    .border(width = 1.dp, color = borderColor, shape = shape)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+            ) {
+                if (label != null) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (leadingIcon != null) {
+                        Icon(
+                            imageVector = leadingIcon,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(Modifier.width(10.dp))
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        if (value.isEmpty() && placeholder != null) {
+                            Text(
+                                text = placeholder,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.62f),
+                            )
+                        }
+                        innerTextField()
+                    }
+                    if (onClear != null && value.isNotEmpty()) {
+                        Spacer(Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(26.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
+                                .clickable(onClick = onClear),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Close,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+    )
+}
+
+/**
+ * 玻璃选择胶囊（分类 / 标签筛选）：未选中是中性玻璃，选中是主题色淡染 + 加重描边。
+ * 与 NieveGlassPillButton 的区别：这是"状态"，不是"动作"，所以没有按压缩放。
+ */
+@Composable
+fun NieveGlassChip(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(50)
+    val interaction = remember { MutableInteractionSource() }
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .then(
+                if (selected) {
+                    Modifier
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f), shape)
+                        .border(
+                            1.dp,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.44f),
+                            shape
+                        )
+                } else {
+                    Modifier
+                        .background(nieveGlassFill(), shape)
+                        .background(nieveGlassHighlight(), shape)
+                        .border(1.dp, nieveGlassBorder(), shape)
+                }
+            )
+            .clickable(
+                interactionSource = interaction,
+                indication = ripple(bounded = true),
+                onClick = onClick
+            )
+            .padding(horizontal = 14.dp, vertical = 7.dp)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+        )
+    }
+}
+
 /** Nieve 通用：玻璃圆形图标按钮（顶栏收藏 / 排序 / 返回 / 新增）。 */
 @Composable
 fun NieveGlassIconButton(
@@ -258,6 +509,9 @@ fun NieveGlassIconButton(
 /**
  * Nieve 二级页统一过渡：新页带轻微缩放入场，旧页缩退。
  * [depth] 用来判断前进/后退方向（数值变大 = 进入更深一层）。
+ *
+ * ★ 同层切换（depth 相等，例如解析页里换目录、换分享）只做淡入淡出：
+ *   那属于「同一页换内容」，再叠一次横向滑动会像整页被推走，反而更乱。
  */
 @Composable
 fun <T> NievePageTransition(
@@ -271,35 +525,41 @@ fun <T> NievePageTransition(
         targetState = targetState,
         modifier = modifier,
         transitionSpec = {
-            val forward = depth(targetState) >= depth(initialState)
-            val deepForward = forward && depth(targetState) >= 2
-            val enterSlide = spring<IntOffset>(
-                dampingRatio = 0.84f,
-                stiffness = Spring.StiffnessMediumLow
-            )
-            val enterScale = spring<Float>(
-                dampingRatio = 0.82f,
-                stiffness = Spring.StiffnessMediumLow
-            )
-            (
-                fadeIn(tween(220)) +
-                    slideInHorizontally(enterSlide) { if (forward) it / 3 else -it / 3 } +
-                    (if (deepForward) {
-                        slideInVertically(enterSlide) { -it / 4 }
-                    } else {
-                        EnterTransition.None
-                    }) +
-                    scaleIn(initialScale = 0.92f, animationSpec = enterScale)
-                ).togetherWith(
-                fadeOut(tween(150)) +
-                    slideOutHorizontally(tween(230)) { if (forward) -it / 6 else it / 6 } +
-                    (if (deepForward) {
-                        slideOutVertically(tween(230)) { it / 8 }
-                    } else {
-                        ExitTransition.None
-                    }) +
-                    scaleOut(targetScale = 0.95f, animationSpec = tween(230))
-            )
+            val fromDepth = depth(initialState)
+            val toDepth = depth(targetState)
+            if (fromDepth == toDepth) {
+                fadeIn(effectsDefault()) togetherWith fadeOut(effectsFast())
+            } else {
+                val forward = toDepth >= fromDepth
+                val deepForward = forward && toDepth >= 2
+                val enterSlide = spring<IntOffset>(
+                    dampingRatio = 0.78f,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+                val enterScale = spring<Float>(
+                    dampingRatio = 0.78f,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+                (
+                    fadeIn(tween(260)) +
+                        slideInHorizontally(enterSlide) { if (forward) it else -it } +
+                        (if (deepForward) {
+                            slideInVertically(enterSlide) { -it / 2 }
+                        } else {
+                            EnterTransition.None
+                        }) +
+                        scaleIn(initialScale = 0.86f, animationSpec = enterScale)
+                    ).togetherWith(
+                    fadeOut(tween(160)) +
+                        slideOutHorizontally(tween(260)) { if (forward) -it / 3 else it / 3 } +
+                        (if (deepForward) {
+                            slideOutVertically(tween(260)) { it / 6 }
+                        } else {
+                            ExitTransition.None
+                        }) +
+                        scaleOut(targetScale = 0.94f, animationSpec = tween(260))
+                )
+            }
         },
         label = label
     ) { content(it) }
@@ -308,6 +568,9 @@ fun <T> NievePageTransition(
 /**
  * Nieve 通用液态玻璃弹窗：替换 M3 原生 AlertDialog。
  * 半透明玻璃面板 + 顶部高光 + 细描边，标题左对齐，底部按钮是胶囊。
+ *
+ * ★ 进出场共用一套「淡入 + 上移 + 缩放」：弹出时从下方浮起，关闭时先回落再真正消隐。
+ *   点按钮 / 点遮罩 / 返回键三条路径都走 [dismiss]，所以观感一致，不会某一处"啪"地消失。
  */
 @Composable
 fun NieveGlassDialog(
@@ -316,17 +579,29 @@ fun NieveGlassDialog(
     modifier: Modifier = Modifier,
     confirmText: String? = null,
     onConfirm: (() -> Unit)? = null,
+    confirmEnabled: Boolean = true,
     dismissText: String? = null,
     onDismiss: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val scope = rememberCoroutineScope()
+    var appeared by remember { mutableStateOf(false) }
+    var closing by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { appeared = true }
+    fun dismiss(action: () -> Unit) {
+        if (closing) return
+        closing = true
+        scope.launch {
+            appeared = false
+            delay(180)
+            action()
+        }
+    }
     Dialog(
-        onDismissRequest = onDismissRequest,
+        onDismissRequest = { dismiss(onDismissRequest) },
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         val shape = RoundedCornerShape(28.dp)
-        var appeared by remember { mutableStateOf(false) }
-            LaunchedEffect(Unit) { appeared = true }
         AnimatedVisibility(
             visible = appeared,
             enter = fadeIn(tween(140)) +
@@ -335,14 +610,17 @@ fun NieveGlassDialog(
                         dampingRatio = 0.82f,
                         stiffness = Spring.StiffnessMediumLow
                     )
-                ) { -it / 6 } +
+                ) { it / 7 } +
                 scaleIn(
                     initialScale = 0.92f,
                     animationSpec = spring(
                         dampingRatio = 0.80f,
                         stiffness = Spring.StiffnessMediumLow
                     )
-                )
+                ),
+            exit = fadeOut(tween(150)) +
+                slideOutVertically(tween(180)) { it / 10 } +
+                scaleOut(targetScale = 0.94f, animationSpec = tween(180))
         ) {
         Column(
             modifier = modifier
@@ -379,7 +657,7 @@ fun NieveGlassDialog(
                         Box(
                             modifier = Modifier
                                 .clip(dismissShape)
-                                .clickable { onDismiss?.invoke() ?: onDismissRequest() }
+                                .clickable { dismiss(onDismiss ?: onDismissRequest) }
                                 .padding(horizontal = 14.dp, vertical = 8.dp)
                         ) {
                             Text(
@@ -396,21 +674,29 @@ fun NieveGlassDialog(
                             modifier = Modifier
                                 .clip(confirmShape)
                                 .background(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                                    MaterialTheme.colorScheme.primary.copy(
+                                        alpha = if (confirmEnabled) 0.16f else 0.06f
+                                    ),
                                     confirmShape
                                 )
                                 .border(
                                     1.dp,
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.40f),
+                                    MaterialTheme.colorScheme.primary.copy(
+                                        alpha = if (confirmEnabled) 0.40f else 0.14f
+                                    ),
                                     confirmShape
                                 )
-                                .clickable { onConfirm?.invoke() ?: onDismissRequest() }
+                                .clickable(enabled = confirmEnabled) {
+                                    dismiss(onConfirm ?: onDismissRequest)
+                                }
                                 .padding(horizontal = 18.dp, vertical = 8.dp)
                         ) {
                             Text(
                                 text = confirmText,
                                 style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = MaterialTheme.colorScheme.primary.copy(
+                                    alpha = if (confirmEnabled) 1f else 0.4f
+                                ),
                                 fontWeight = FontWeight.SemiBold
                             )
                         }

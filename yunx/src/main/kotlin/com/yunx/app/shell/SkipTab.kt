@@ -151,6 +151,7 @@ fun SkipTab(
 
     val accessibilityState by startAccessibilityViewModel.accessibilityState.collectAsState()
     val running = accessibilityState == AccessibilityState.STARTED
+    val skipScope = rememberCoroutineScope()
 
     BackHandler(enabled = route != SkipRoute.Dashboard) {
         onRouteChange(SkipRoute.Dashboard)
@@ -177,6 +178,12 @@ fun SkipTab(
             onOpenAppearance = onOpenAppearance,
         )
 
+        SkipRoute.Subscriptions -> SkipSubscriptionsPage(
+            context = context,
+            configViewModel = configViewModel,
+            onBack = { onRouteChange(SkipRoute.Dashboard) },
+        )
+
         SkipRoute.Logs -> SkipLogPage(
             skipLogViewModel = skipLogViewModel,
             onBack = { onRouteChange(SkipRoute.Settings) },
@@ -200,6 +207,13 @@ fun SkipTab(
             running = running,
             accessibilityState = accessibilityState,
             onOpenSettings = { onRouteChange(SkipRoute.Settings) },
+            onOpenSubscriptions = { onRouteChange(SkipRoute.Subscriptions) },
+            onSyncConfig = {
+                skipScope.launch {
+                    configViewModel.readConfig()
+                    Toast.makeText(context, "已拉取所有启用的订阅", Toast.LENGTH_SHORT).show()
+                }
+            },
             onOpenWhitelist = { onRouteChange(SkipRoute.Whitelist) },
             onOpenAlive = { onRouteChange(SkipRoute.Alive) },
         )
@@ -213,6 +227,7 @@ fun SkipTab(
 private object SkipRoute {
     const val Dashboard = "dashboard"
     const val Settings = "settings"
+    const val Subscriptions = "subscriptions"
     const val Logs = "logs"
     const val Whitelist = "whitelist"
     const val Alive = "alive"
@@ -253,6 +268,8 @@ private fun SkipDashboard(
     running: Boolean,
     accessibilityState: AccessibilityState,
     onOpenSettings: () -> Unit,
+    onOpenSubscriptions: () -> Unit,
+    onSyncConfig: () -> Unit,
     onOpenWhitelist: () -> Unit,
     onOpenAlive: () -> Unit,
 ) {
@@ -304,6 +321,24 @@ private fun SkipDashboard(
         SmallTitle(text = "功能")
         Card(modifier = Modifier.fillMaxWidth()) {
             ArrowPreference(
+                title = "配置更新",
+                summary = "立即拉取所有启用的订阅并应用最新规则",
+                onClick = onSyncConfig,
+            )
+            ArrowPreference(
+                title = "在线订阅",
+                summary = "导入多个 GKD / SKIP 订阅 · 查看并自定义规则内容",
+                startAction = {
+                    Icon(
+                        Icons.Rounded.CloudDownload,
+                        contentDescription = null,
+                        tint = MiuixTheme.colorScheme.onBackground,
+                        modifier = Modifier.padding(end = 6.dp),
+                    )
+                },
+                onClick = onOpenSubscriptions,
+            )
+            ArrowPreference(
                 title = "应用白名单",
                 summary = "设置不参与自动跳过的应用",
                 startAction = {
@@ -338,7 +373,7 @@ private fun SkipDashboard(
             )
             ArrowPreference(
                 title = "跳过设置",
-                summary = "提示 · 严格模式 · 日志 · 自定义规则 · 云端规则",
+                summary = "提示 · 严格模式 · 日志 · 通知权限",
                 onClick = onOpenSettings,
             )
         }
@@ -428,51 +463,6 @@ private fun SkipSettingsPage(
                 onClick = {
                     skipLogViewModel.loadDailyLogs()
                     onOpenLogs()
-                },
-            )
-            ArrowPreference(
-                title = "检查规则更新",
-                summary = "从云端拉取最新跳过规则并立即应用",
-                onClick = {
-                    scope.launch {
-                        configViewModel.readConfig()
-                        Toast.makeText(
-                            context,
-                            "已检查云端规则，如有更新将自动应用",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                },
-            )
-            ArrowPreference(
-                title = "在线订阅",
-                summary = if (subscriptionUrl.isBlank()) {
-                    "内置订阅：$defaultConfigUrl"
-                } else {
-                    subscriptionUrl
-                },
-                startAction = {
-                    Icon(
-                        Icons.Rounded.CloudDownload,
-                        contentDescription = null,
-                        tint = MiuixTheme.colorScheme.onBackground,
-                        modifier = Modifier.padding(end = 6.dp),
-                    )
-                },
-                onClick = {
-                    subscriptionUrl = DataStoreUtils.getSyncData(customConfigKey, "")
-                    showSubscriptionDialog = true
-                },
-            )
-            ArrowPreference(
-                title = "自定义规则",
-                summary = "编辑本地规则文本，留空恢复默认",
-                onClick = {
-                    configText = DataStoreUtils.getSyncData(
-                        context.getString(com.android.skip.R.string.store_custom_config),
-                        ""
-                    )
-                    showConfigDialog = true
                 },
             )
             ArrowPreference(

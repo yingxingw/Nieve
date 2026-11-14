@@ -22,6 +22,7 @@ import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -37,6 +38,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yunx.app.ui.MainScreen
+import com.yunx.app.ui.GlobalSnackbarHost
+import com.yunx.app.ui.SnackbarController
 import com.yunx.app.ui.navigation.MainTab
 import io.github.seyud.weave.ui.component.FloatingBottomBar
 import io.github.seyud.weave.ui.component.FloatingBottomBarItem
@@ -269,6 +272,20 @@ fun NieveShell(
                                     )
                                 }
                             }
+                        }
+                    }
+
+                    GlobalSnackbarHost()
+
+                    val loginError by SnackbarController.loginError.collectAsState()
+                    loginError?.let { message ->
+                        NieveGlassDialog(
+                            onDismissRequest = { SnackbarController.dismissLoginError() },
+                            title = "登录失败",
+                            confirmText = "知道了",
+                            onConfirm = { SnackbarController.dismissLoginError() },
+                        ) {
+                            Text(message)
                         }
                     }
                 }

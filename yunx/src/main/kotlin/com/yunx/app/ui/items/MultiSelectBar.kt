@@ -18,28 +18,38 @@
 
 package com.yunx.app.ui.items
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.ripple
 import androidx.compose.material3.rememberTooltipState
-import androidx.compose.material3.Text
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FloatingToolbarDefaults
-import androidx.compose.material3.HorizontalFloatingToolbar
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.yunx.app.shell.nieveGlassBorder
+import com.yunx.app.shell.nieveGlassFill
+import com.yunx.app.shell.nieveGlassHighlight
 
 /** 多选底部批量操作项 */
 internal data class MultiSelectAction(
@@ -52,11 +62,11 @@ internal data class MultiSelectAction(
 /**
  * 多选模式底部批量操作栏（云盘页/解析页共用）。
  *
- * Expressive 悬浮工具栏：外形 / 进出场形变动效由组件提供，取代了原来「贴满整宽的 Surface + Row」。
+ * 形态：悬浮的玻璃胶囊（不再用 M3 FloatingToolbar 的实底色 + 6dp 灰阴影），
+ * 每个操作是一个圆形图标按钮，长按出 Tooltip 说明。
  * ★ 只放图标不放文字：文字会让胶囊条变长、且与图标叠在一起显得拥挤（操作含义由无障碍标签给出）。
- * ★ 显式指定容器色与展开态阴影：默认展开态没有阴影，与页面背景贴在一起看不出边界。
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun MultiSelectBar(
     count: Int,
@@ -64,28 +74,47 @@ internal fun MultiSelectBar(
     busy: Boolean = false
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
-        HorizontalFloatingToolbar(
-            expanded = true,
+        val shape = RoundedCornerShape(50)
+        Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(horizontal = 12.dp, vertical = 16.dp),
-            colors = FloatingToolbarDefaults.standardFloatingToolbarColors(
-                toolbarContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-            ),
-            expandedShadowElevation = 6.dp
+                .padding(horizontal = 12.dp, vertical = 16.dp)
+                .clip(shape)
+                .background(color = nieveGlassFill(), shape = shape)
+                .background(nieveGlassHighlight(), shape)
+                .border(1.dp, nieveGlassBorder(), shape)
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             actions.forEach { action ->
+                val enabled = count > 0 && !busy
                 TooltipBox(
-                    positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
+                    positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                        TooltipAnchorPosition.Above
+                    ),
                     tooltip = { PlainTooltip { Text(action.label) } },
                     state = rememberTooltipState()
                 ) {
-                    IconButton(onClick = action.onClick, enabled = count > 0 && !busy) {
+                    val tint = if (enabled) action.tint
+                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(tint.copy(alpha = if (enabled) 0.10f else 0.04f), CircleShape)
+                            .clickable(
+                                enabled = enabled,
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = ripple(bounded = true),
+                                onClick = action.onClick
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Icon(
                             imageVector = action.icon,
                             contentDescription = action.label,
-                            tint = if (count > 0 && !busy) action.tint
-                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            modifier = Modifier.size(22.dp),
+                            tint = tint
                         )
                     }
                 }

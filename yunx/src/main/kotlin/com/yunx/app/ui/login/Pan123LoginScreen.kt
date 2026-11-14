@@ -377,7 +377,7 @@ fun Pan123LoginScreen(
                                     showTokenDialog = false
                                     onSaved()
                                 } else {
-                                    SnackbarController.show(AppStrings.get(R.string.lg_pan123_token_invalid))
+                                    SnackbarController.showLoginError(AppStrings.get(R.string.lg_pan123_token_invalid))
                                 }
                             } finally {
                                 isSavingManual = false

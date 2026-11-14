@@ -19,39 +19,59 @@
 package com.yunx.app.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.KeyboardArrowUp
-import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import com.yunx.app.R
+import com.yunx.app.shell.nieveGlassBorder
+import com.yunx.app.shell.nieveGlassFill
+import com.yunx.app.shell.nieveGlassHighlight
 import com.yunx.app.ui.theme.effectsDefault
 import com.yunx.app.ui.theme.effectsFast
 import com.yunx.app.ui.theme.spatialDefault
 import com.yunx.app.ui.theme.spatialFast
+import kotlinx.coroutines.launch
 
 /**
- * 返回顶部按钮（Material3 规范）：
- * - 列表上滑离开顶部后，右下角淡入+缩放出现；
- * - 点击后平滑滚动回顶部；
- * - 回到顶部（第一个可见项为 0 且无偏移）后自动淡出。
+ * 返回顶部按钮（Nieve 玻璃形态）：
+ * - 列表上滑离开顶部后，右下角**弹**出来（淡入 + 弹簧过冲缩放），回到顶部后缩回；
+ * - 圆形玻璃底 + 1dp 细描边 + 顶部高光，与页面其它玻璃卡片同一材质；
+ * - 箭头用实心 ArrowUpward 并**几何居中**（不再像旧版那样靠 padding 微调、看着偏下）；
+ * - 按下有轻微回弹，松手滚动回第一项。
+ *
+ * ★ 旧实现是 M3 的 SmallFloatingActionButton：默认带 6dp 灰阴影 + secondaryContainer 实底色，
+ *   落在纯黑/玻璃页面上会变成一块"浮起来的灰圆"，图标又是空心折角箭头，视觉上像错位——
+ *   这正是之前右下角看着乱的原因。这里改成无阴影的玻璃圆钮，视觉重心与卡片一致。
+ *
  * 放置位置由调用方通过 modifier 指定（如 Box.align(BottomEnd)）。
  */
 @Composable
@@ -66,26 +86,45 @@ internal fun ScrollToTopButton(
             listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0
         }
     }
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (pressed) 0.9f else 1f,
+        animationSpec = spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessMediumLow),
+        label = "scrollTopPress"
+    )
     AnimatedVisibility(
         visible = showButton,
-        enter = fadeIn(effectsDefault()) + scaleIn(spatialDefault(), initialScale = 0.8f),
-        exit = fadeOut(effectsFast()) + scaleOut(spatialFast(), targetScale = 0.8f),
+        enter = fadeIn(effectsDefault()) +
+            scaleIn(
+                animationSpec = spring(dampingRatio = 0.52f, stiffness = Spring.StiffnessMediumLow),
+                initialScale = 0.6f
+            ),
+        exit = fadeOut(effectsFast()) +
+            scaleOut(spatialFast(), targetScale = 0.7f),
         modifier = modifier
     ) {
-        SmallFloatingActionButton(
-            onClick = { scope.launch { listState.animateScrollToItem(0) } },
-            shape = CircleShape,
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            elevation = FloatingActionButtonDefaults.elevation(
-                defaultElevation = 6.dp,
-                pressedElevation = 8.dp
-            )
+        val shape = CircleShape
+        Box(
+            modifier = Modifier
+                .scale(pressScale)
+                .size(46.dp)
+                .clip(shape)
+                .background(color = nieveGlassFill(), shape = shape)
+                .background(nieveGlassHighlight(), shape)
+                .border(width = 1.dp, color = nieveGlassBorder(), shape = shape)
+                .clickable(
+                    interactionSource = interaction,
+                    indication = ripple(bounded = true),
+                    onClick = { scope.launch { listState.animateScrollToItem(0) } }
+                ),
+            contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Outlined.KeyboardArrowUp,
+                imageVector = Icons.Rounded.ArrowUpward,
                 contentDescription = stringResource(R.string.content_desc_scroll_to_top),
-                modifier = Modifier.padding(bottom = 2.dp) // 视觉微调：箭头视觉居中
+                modifier = Modifier.size(22.dp),
+                tint = MaterialTheme.colorScheme.primary
             )
         }
     }

@@ -322,7 +322,7 @@ fun Pan115LoginScreen(
                                 showCookieDialog = false
                                 onSaved()
                             } else {
-                                SnackbarController.show(AppStrings.get(R.string.lg_pan115_cookie_invalid))
+                                SnackbarController.showLoginError(AppStrings.get(R.string.lg_pan115_cookie_invalid))
                             }
                         }
                     },

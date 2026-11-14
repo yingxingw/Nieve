@@ -296,7 +296,7 @@ fun XunleiWebLoginScreen(
                                     showPasteDialog = false
                                     onSaved()
                                 } else {
-                                    SnackbarController.show(AppStrings.get(R.string.lg_credential_invalid))
+                                    SnackbarController.showLoginError(AppStrings.get(R.string.lg_credential_invalid))
                                 }
                             } finally {
                                 isSavingManual = false

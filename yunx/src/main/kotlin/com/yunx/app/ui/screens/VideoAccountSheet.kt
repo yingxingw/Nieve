@@ -216,24 +216,19 @@ internal fun VideoAccountSheet(
     }
 
     if (showRemoveAll) {
-        AlertDialog(
+        com.yunx.app.shell.NieveGlassDialog(
             onDismissRequest = { showRemoveAll = false },
-            title = { Text(stringResource(R.string.sh_logout_all_accounts)) },
-            text = {
-                Text(stringResource(R.string.sh_logout_all_confirm, platform.displayName, accounts.size))
+            title = stringResource(R.string.sh_logout_all_accounts),
+            confirmText = stringResource(R.string.sh_logout_all),
+            onConfirm = {
+                showRemoveAll = false
+                onRemoveAll()
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showRemoveAll = false
-                        onRemoveAll()
-                    }
-                ) {
-                    Text(stringResource(R.string.sh_logout_all), color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = { TextButton(onClick = { showRemoveAll = false }) { Text(stringResource(R.string.sh_cancel)) } }
-        )
+            dismissText = stringResource(R.string.sh_cancel),
+            onDismiss = { showRemoveAll = false },
+        ) {
+            Text(stringResource(R.string.sh_logout_all_confirm, platform.displayName, accounts.size))
+        }
     }
 }
 
@@ -261,14 +256,14 @@ private fun VideoAccountRow(
         Surface(
             modifier = Modifier.size(36.dp),
             shape = CircleShape,
-            color = MaterialTheme.colorScheme.primaryContainer
+            color = MaterialTheme.colorScheme.primary
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Text(
                     text = displayName.take(1),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
             }
         }
@@ -315,57 +310,47 @@ private fun VideoAccountRow(
 
     if (showRename) {
         var input by remember(account.id) { mutableStateOf(account.remark) }
-        AlertDialog(
+        com.yunx.app.shell.NieveGlassDialog(
             onDismissRequest = { showRename = false },
-            title = { Text(stringResource(R.string.sh_rename_remark)) },
-            text = {
-                Column {
-                    OutlinedTextField(
-                        value = input,
-                        onValueChange = { input = it },
-                        singleLine = true,
-                        label = { Text(stringResource(R.string.sh_remark)) },
-                        placeholder = { Text(account.nickname.ifBlank { stringResource(R.string.sh_remark_placeholder) }) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(R.string.sh_video_remark_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+            title = stringResource(R.string.sh_rename_remark),
+            confirmText = stringResource(R.string.sh_save),
+            onConfirm = {
+                showRename = false
+                onRename(account.id, input)
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showRename = false
-                        onRename(account.id, input)
-                    }
-                ) { Text(stringResource(R.string.sh_save)) }
-            },
-            dismissButton = { TextButton(onClick = { showRename = false }) { Text(stringResource(R.string.sh_cancel)) } }
-        )
+            dismissText = stringResource(R.string.sh_cancel),
+            onDismiss = { showRename = false },
+        ) {
+            OutlinedTextField(
+                value = input,
+                onValueChange = { input = it },
+                singleLine = true,
+                label = { Text(stringResource(R.string.sh_remark)) },
+                placeholder = { Text(account.nickname.ifBlank { stringResource(R.string.sh_remark_placeholder) }) },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.sh_video_remark_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 
     if (showRemove) {
-        AlertDialog(
+        com.yunx.app.shell.NieveGlassDialog(
             onDismissRequest = { showRemove = false },
-            title = { Text(stringResource(R.string.sh_logout_account)) },
-            text = {
-                Text(stringResource(R.string.sh_logout_confirm, displayName))
+            title = stringResource(R.string.sh_logout_account),
+            confirmText = stringResource(R.string.sh_logout),
+            onConfirm = {
+                showRemove = false
+                onRemove(account.id)
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showRemove = false
-                        onRemove(account.id)
-                    }
-                ) {
-                    Text(stringResource(R.string.sh_logout), color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = { TextButton(onClick = { showRemove = false }) { Text(stringResource(R.string.sh_cancel)) } }
-        )
+            dismissText = stringResource(R.string.sh_cancel),
+            onDismiss = { showRemove = false },
+        ) {
+            Text(stringResource(R.string.sh_logout_confirm, displayName))
+        }
     }
 }

@@ -351,7 +351,7 @@ fun BaiduLoginScreen(
                                 showCookieDialog = false
                                 onSaved()
                             } else {
-                                SnackbarController.show(AppStrings.get(R.string.lg_baidu_cookie_invalid))
+                                SnackbarController.showLoginError(AppStrings.get(R.string.lg_baidu_cookie_invalid))
                             }
                         }
                     },

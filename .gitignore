@@ -1,0 +1,22 @@
+# Gradle / Kotlin build state
+.gradle/
+.kotlin/
+build/
+*/build/
+
+# IDE
+.idea/
+*.iml
+
+# Local machine config (SDK path etc.)
+local.properties
+
+# Build outputs & packaging
+*.apk
+*.aab
+build_log.txt
+merge_report.txt
+
+# OS noise
+.DS_Store
+Thumbs.db

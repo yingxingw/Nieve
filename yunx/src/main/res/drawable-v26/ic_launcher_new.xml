@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+    YunX (云析) - A network drive share-link parser and high-speed downloader for Android.
+    Copyright (C) 2026 CYQawa
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
+
+<!--
+    桌面图标「新图标」资源（API 26+）：走自适应图标，形状交给系统遮罩。
+    Nieve 品牌层拆成两张独立资产：
+    - background：ic_launcher_nieve_bg（深蓝→冰青渐变 + 雪点，铺满遮罩）
+    - foreground：ic_launcher_new_foreground（透明底的雪晶 N，控制在 66/108 安全区内）
+    这样在 Android 15/16（桌面 / 开屏 / 最近任务）里与其它应用图标的观感尺寸一致，
+    也不会出现旧版「白卡片 + 图形偏小」的双重留白。
+
+    注意：此文件不要命名为 icon2，否则会覆盖位图版 icon2.png，而主题与外观页的图标预览
+    走 painterResource(R.drawable.icon2)——它只支持矢量/位图，遇到 <adaptive-icon> 会抛异常。
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_nieve_bg" />
+    <foreground android:drawable="@drawable/ic_launcher_new_foreground" />
+</adaptive-icon>

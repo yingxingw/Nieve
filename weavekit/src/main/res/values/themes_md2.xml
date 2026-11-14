@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--
+    # Theme guide
+
+    This should provide all the information you need to create new !color! themes.
+
+    ## Inheritance
+
+    You might want to inherit default values from "base" theme. You can do so implicitly by just
+    writing `<style name="ThemeFoundationMD2.MySuperAwesomeTheme" parent="ThemeFoundationMD2.Piplup">`.
+    With this approach you can only change values you (don't) like - such as `colorPrimary` or
+    `colorSecondary`.
+
+    ## Day / Night ? How do I define both in one theme?
+
+    Define Theme here for "Day" theme and in `values-night` directory define theme with same name
+    and parent if applicable. The framework will automatically switch between day/night themes based
+    on user's requested configuration. (Always light, Always dark, Follow system)
+
+    You might choose to define only "Day" theme with Dark colors to have dark theme regardless.
+    That's super lazy approach and is discouraged but the framework permits it.
+
+    ## What to theme
+
+    Generally I'd suggest theming only `colorPrimary`, `colorSecondary` and their variants. Make
+    sure that text is readable if displayed on primary or secondary color!
+
+    You can check that very easily by visiting https://www.colorhexa.com/. After you put in your
+    color hex, you can scroll down to "Preview" where it will compute whether dark/bright text
+    should be displayed on top of it. Then you must edit respective `colorOn...`.
+
+    Also check "Color Blindness Simulator". Primary and secondary colors must not match or be
+    similar in type. Text on color must have enough contrast so it can be read by everyone!
+
+    !! Themes that will not satisfy these requirements will be promptly deleted without further
+    !! notice. In repeated attempts to push such themes you will be automatically blacklisted.
+    -->
+
+    <style name="ThemeFoundationMD2" parent="Foundation.Default" />
+
+    <!--1st party themes-->
+
+    <style name="ThemeFoundationMD2.Piplup">
+        <item name="colorPrimary">#4EAFF5</item>
+        <item name="colorPrimaryVariant">#804EAFF5</item>
+        <item name="colorSecondary">#3E78AF</item>
+        <item name="colorSecondaryVariant">#803E78AF</item>
+        <item name="colorSurface">#F9F9F9</item>
+        <item name="colorSurfaceVariant">#EEEEEE</item>
+        <item name="colorSurfaceSurfaceVariant">?colorSurface</item>
+        <item name="colorOnPrimary">#F9F9F9</item>
+        <item name="colorOnPrimaryVariant">#D9E6E6E6</item>
+        <item name="colorOnSecondary">#F9F9F9</item>
+        <item name="colorOnBackground">?colorOnSurface</item>
+        <item name="colorError">#CC0047</item>
+        <item name="colorOnError">#F9F9F9</item>
+        <item name="colorOnSurface">#444444</item>
+        <item name="colorOnSurfaceVariant">#BF444444</item>
+        <item name="colorDisabled">#808080</item>
+        <item name="colorDisabledVariant">#66808080</item>
+    </style>
+
+    <!--3rd party themes-->
+
+</resources>

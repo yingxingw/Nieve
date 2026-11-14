@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--region Caption-->
+    <style name="AppearanceFoundation.Caption" parent="TextAppearance.AppCompat.Caption">
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <!--endregion-->
+
+</resources>

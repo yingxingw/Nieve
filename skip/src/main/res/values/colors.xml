@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- light -->
+    <color name="colorPrimary">#FFBB86FC</color>
+    <color name="colorPrimaryDark">#FF3700B3</color>
+    <color name="colorOnPrimary">#FFFFFF</color>
+    <!-- night -->
+    <color name="colorPrimaryNight">#FFBB86FC</color>
+    <color name="colorPrimaryDarkNight">#FF3700B3</color>
+    <color name="colorOnPrimaryNight">#FFFFFF</color>
+</resources>

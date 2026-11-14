@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--1st party themes-->
+
+    <style name="ThemeFoundationMD2.Piplup">
+        <item name="colorPrimary">#4EAFF5</item>
+        <item name="colorPrimaryVariant">#804EAFF5</item>
+        <item name="colorSecondary">#3E78AF</item>
+        <item name="colorSecondaryVariant">#803E78AF</item>
+        <item name="colorSurface">#0D0D0D</item>
+        <item name="colorSurfaceVariant">#171717</item>
+        <item name="colorSurfaceSurfaceVariant">#292929</item>
+        <item name="colorOnPrimary">#F9F9F9</item>
+        <item name="colorOnPrimaryVariant">#D9E6E6E6</item>
+        <item name="colorOnSecondary">#F9F9F9</item>
+        <item name="colorOnBackground">?colorOnSurface</item>
+        <item name="colorError">#EF8282</item>
+        <item name="colorOnError">#0D0D0D</item>
+        <item name="colorOnSurface">#D8D8D8</item>
+        <item name="colorOnSurfaceVariant">#CCBABABA</item>
+        <item name="colorDisabled">#808080</item>
+        <item name="colorDisabledVariant">#66808080</item>
+    </style>
+
+    <!--3rd party themes-->
+
+</resources>

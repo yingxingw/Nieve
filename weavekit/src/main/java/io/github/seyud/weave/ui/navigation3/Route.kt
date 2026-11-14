@@ -1,0 +1,93 @@
+package io.github.seyud.weave.ui.navigation3
+
+import android.net.Uri
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+import kotlinx.serialization.Serializable
+import top.yukonga.miuix.kmp.nav.core.NavKey
+
+/**
+ * 类型安全的导航路由定义（miuix-nav）
+ * 每个目的地是一个 NavKey（data object/data class），可保存/恢复到 backStack
+ *
+ * 层级本身必须标记 @Serializable：rememberNavBackStack 用封闭多态序列化器
+ * 持久化整个栈，进程重建后按同一历史恢复
+ */
+@Serializable
+sealed interface Route : NavKey, Parcelable {
+    /** 主页面（包含底部导航栏 + HorizontalPager） */
+    @Parcelize
+    @Serializable
+    data object Main : Route
+
+    /** 安装页面 */
+    @Parcelize
+    @Serializable
+    data object Install : Route
+
+    /** 刷写页面 */
+    @Parcelize
+    @Serializable
+    data class Flash(val action: String, val uriStrings: List<String> = emptyList()) : Route
+
+    /** 日志页面 */
+    @Parcelize
+    @Serializable
+    data object Log : Route
+
+    /** 模块仓库列表页面 */
+    @Parcelize
+    @Serializable
+    data object ModuleRepoList : Route
+
+    /** 模块仓库详情页面 */
+    @Parcelize
+    @Serializable
+    data class ModuleRepoDetail(
+        val moduleId: String,
+    ) : Route
+
+    /** 一次性脚本运行页面（仓库 kind = script） */
+    @Parcelize
+    @Serializable
+    data class ScriptRun(
+        /** 已验证的脚本文本 ZIP（content:// URI） */
+        val zipUri: String,
+        /** 仓库条目 id，用于校验 module.prop */
+        val registryId: String,
+        val displayName: String,
+        /** 仓库 release 记录的大小，运行前再次校验（0 表示未知） */
+        val expectedSize: Long = 0L,
+        /** 仓库 release 记录的 SHA-256，运行前再次校验 */
+        val expectedSha256: String = "",
+    ) : Route
+
+    /** 应用语言设置 */
+    @Parcelize
+    @Serializable
+    data object AppLanguage : Route
+
+    /** 拒绝列表 */
+    @Parcelize
+    @Serializable
+    data object Deny : Route
+
+    /** 主题设置页面 */
+    @Parcelize
+    @Serializable
+    data object ColorPalette : Route
+
+    /** 关于页面 */
+    @Parcelize
+    @Serializable
+    data object About : Route
+
+    /** 模块操作页面 */
+    @Parcelize
+    @Serializable
+    data class Action(
+        val moduleId: String,
+        val moduleName: String = "",
+        val fromShortcut: Boolean = false,
+    ) : Route
+}

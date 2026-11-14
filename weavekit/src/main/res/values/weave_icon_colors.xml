@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- WeaveMask core ic_app_logo 引用的图标配色（上游定义于 :core values/colors.xml） -->
+    <color name="weave_icon_primary">#62748E</color>
+    <color name="weave_icon_secondary">#90A1B9</color>
+</resources>

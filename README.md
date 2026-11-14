@@ -59,7 +59,7 @@ https://raw.githubusercontent.com/yingxingw/Nieve/main/update.json
   "versionCode": 312,
   "versionName": "3.1.2",
   "minVersionCode": 0,
-  "downloadUrl": "https://github.com/yingxingw/Nieve/raw/main/releases/Nieve-3.1.2.apk",
+  "downloadUrl": "https://raw.githubusercontent.com/yingxingw/Nieve/f09ef396e2327b8fd3e88cfeb06a129c48da1aa4/releases/Nieve-3.1.2.apk",
   "changelog": "更新内容",
   "updateDate": "2026-11-15",
   "forceUpdate": false,

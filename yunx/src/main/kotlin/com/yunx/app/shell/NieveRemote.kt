@@ -1,0 +1,135 @@
+package com.yunx.app.shell
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONArray
+import org.json.JSONObject
+import java.util.concurrent.TimeUnit
+
+/**
+ * 远程配置读取：
+ * - 版本 / 强制更新 / 禁用开关：当前源码仓库根目录的 update.json
+ * - 多份公告：旧的 nieve-update 仓库根目录的 announcements.json
+ *
+ * 读取失败一律回退为“正常可用”，避免网络波动把本地应用锁死。
+ */
+object NieveRemote {
+    const val UPDATE_URL =
+        "https://raw.githubusercontent.com/yingxingw/Nieve/main/update.json"
+    const val ANNOUNCEMENT_URL =
+        "https://raw.githubusercontent.com/yingxingw/nieve-update/main/announcements.json"
+    const val FALLBACK_WEB = "https://github.com/yingxingw/Nieve"
+
+    data class Config(
+        val versionCode: Int,
+        val versionName: String,
+        val minVersionCode: Int,
+        val downloadUrl: String,
+        val changelog: String,
+        val updateDate: String,
+        val forceUpdate: Boolean,
+        val disabled: Boolean,
+        val disabledMessage: String,
+    )
+
+    data class Announcement(
+        val id: String,
+        val title: String,
+        val content: String,
+        val date: String,
+    )
+
+    data class AnnouncementFeed(
+        val items: List<Announcement>,
+        val error: String?,
+    )
+
+    sealed interface ConfigResult {
+        data class Ok(val config: Config) : ConfigResult
+        data class Failed(val message: String) : ConfigResult
+    }
+
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(8, TimeUnit.SECONDS)
+        .readTimeout(8, TimeUnit.SECONDS)
+        .callTimeout(12, TimeUnit.SECONDS)
+        .build()
+
+    private fun fetchText(url: String): Result<String> = runCatching {
+        val request = Request.Builder()
+            .url(url)
+            .header("Cache-Control", "no-cache")
+            .header("User-Agent", "Nieve")
+            .get()
+            .build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                error("HTTP ${response.code}")
+            }
+            response.body?.string().orEmpty().takeIf { it.isNotBlank() }
+                ?: error("响应为空")
+        }
+    }
+
+    suspend fun fetchConfig(): ConfigResult = withContext(Dispatchers.IO) {
+        val body = fetchText(UPDATE_URL).getOrElse {
+            return@withContext ConfigResult.Failed(it.message ?: "无法连接更新通道")
+        }
+        try {
+            val json = JSONObject(body)
+            val url = json.optString("downloadUrl").ifBlank { FALLBACK_WEB }
+            ConfigResult.Ok(
+                Config(
+                    versionCode = json.optInt("versionCode", 0),
+                    versionName = json.optString("versionName", ""),
+                    minVersionCode = json.optInt("minVersionCode", 0),
+                    downloadUrl = url,
+                    changelog = json.optString("changelog", ""),
+                    updateDate = json.optString("updateDate", ""),
+                    forceUpdate = json.optBoolean("forceUpdate", false),
+                    disabled = json.optBoolean("disabled", false),
+                    disabledMessage = json.optString(
+                        "disabledMessage",
+                        "Nieve 暂时停止使用，请等待后续版本。"
+                    ),
+                )
+            )
+        } catch (e: Exception) {
+            ConfigResult.Failed("更新配置格式错误：${e.message ?: "unknown"}")
+        }
+    }
+
+    suspend fun fetchAnnouncements(): AnnouncementFeed = withContext(Dispatchers.IO) {
+        val body = fetchText(ANNOUNCEMENT_URL).getOrElse {
+            return@withContext AnnouncementFeed(emptyList(), it.message ?: "无法连接公告通道")
+        }
+        runCatching {
+            val array = runCatching {
+                JSONArray(body)
+            }.getOrElse {
+                JSONObject(body).optJSONArray("items") ?: JSONArray()
+            }
+            val items = buildList {
+                for (i in 0 until array.length()) {
+                    val item = array.optJSONObject(i) ?: continue
+                    val title = item.optString("title").trim()
+                    val content = item.optString("content").trim()
+                    if (title.isBlank() && content.isBlank()) continue
+                    add(
+                        Announcement(
+                            id = item.optString("id").ifBlank { "announcement-$i" },
+                            title = title.ifBlank { "公告" },
+                            content = content,
+                            date = item.optString("date"),
+                        )
+                    )
+                }
+            }
+            AnnouncementFeed(items, null)
+        }.getOrElse {
+            AnnouncementFeed(emptyList(), "公告格式错误：${it.message ?: "unknown"}")
+        }
+    }
+}

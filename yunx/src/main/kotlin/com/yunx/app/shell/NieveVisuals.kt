@@ -70,6 +70,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -348,6 +349,7 @@ fun NieveGlassTextField(
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     onClear: (() -> Unit)? = null,
     enabled: Boolean = true,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
 ) {
     val shape = RoundedCornerShape(18.dp)
     val interaction = remember { MutableInteractionSource() }
@@ -365,6 +367,7 @@ fun NieveGlassTextField(
         singleLine = singleLine,
         minLines = minLines,
         maxLines = maxLines,
+        visualTransformation = visualTransformation,
         textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
         interactionSource = interaction,
@@ -580,6 +583,7 @@ fun NieveGlassDialog(
     confirmText: String? = null,
     onConfirm: (() -> Unit)? = null,
     confirmEnabled: Boolean = true,
+    dismissible: Boolean = true,
     dismissText: String? = null,
     onDismiss: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
@@ -598,8 +602,12 @@ fun NieveGlassDialog(
         }
     }
     Dialog(
-        onDismissRequest = { dismiss(onDismissRequest) },
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        onDismissRequest = { if (dismissible) dismiss(onDismissRequest) },
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = dismissible,
+            dismissOnClickOutside = dismissible,
+        )
     ) {
         val shape = RoundedCornerShape(28.dp)
         AnimatedVisibility(

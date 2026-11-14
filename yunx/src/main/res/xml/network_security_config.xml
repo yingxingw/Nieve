@@ -14,6 +14,13 @@
         </trust-anchors>
     </base-config>
 
+    <!-- 网易云播放外链会 302 到 m*.music.126.net 的 http 音频地址；只对网易云 CDN 放行明文，
+         其余域名仍保持仅 HTTPS。 -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">music.126.net</domain>
+        <domain includeSubdomains="true">music.163.com</domain>
+    </domain-config>
+
     <!-- Android only applies this block when android:debuggable="true". -->
     <debug-overrides>
         <trust-anchors>

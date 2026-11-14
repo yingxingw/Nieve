@@ -17,6 +17,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import com.yunx.app.crash.CrashHandler
+import com.yunx.app.shell.NieveRemoteGate
 import com.yunx.app.shell.NieveShell
 import com.yunx.app.ui.navigation.MainTab
 import com.yunx.app.ui.theme.ComposeEmptyActivityTheme
@@ -40,6 +41,9 @@ class MainActivity : ComponentActivity() {
 
     /** 直链 / 磁力：交给下载页「添加下载任务」预填（磁力只有 Gopeed 引擎能下） */
     private val pendingAddUrl = mutableStateOf<String?>(null)
+
+    /** 调试/快捷入口：直接落到「功能」页里的某个工具（值即 ToolsTab 的 route，如 vip） */
+    private val pendingTool = mutableStateOf<String?>(null)
 
     /**
      * 应用内语言：在 Activity 建立 Context 前就按已保存语言替换 Configuration，
@@ -75,18 +79,23 @@ class MainActivity : ComponentActivity() {
         // ★ 只在首次创建时处理：旋转/进程重建会带着同一个 intent 再走一次 onCreate，重复消费会重复解析。
         if (savedInstanceState == null) {
             pendingTab.value = tabFromIntent(intent)
+            pendingTool.value = intent?.getStringExtra(EXTRA_OPEN_TOOL)
             handleDeepLink(intent)
         }
         setContent {
             ComposeEmptyActivityTheme {
-                NieveShell(
-                    yunxTab = pendingTab.value,
-                    onYunxTabConsumed = { pendingTab.value = null },
-                    incomingLink = pendingLink.value,
-                    onIncomingLinkConsumed = { pendingLink.value = null },
-                    incomingAddUrl = pendingAddUrl.value,
-                    onIncomingAddUrlConsumed = { pendingAddUrl.value = null },
-                )
+                NieveRemoteGate {
+                    NieveShell(
+                        yunxTab = pendingTab.value,
+                        onYunxTabConsumed = { pendingTab.value = null },
+                        incomingLink = pendingLink.value,
+                        onIncomingLinkConsumed = { pendingLink.value = null },
+                        incomingAddUrl = pendingAddUrl.value,
+                        onIncomingAddUrlConsumed = { pendingAddUrl.value = null },
+                        initialToolRoute = pendingTool.value,
+                        onToolRouteConsumed = { pendingTool.value = null },
+                    )
+                }
             }
         }
     }
@@ -99,6 +108,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         tabFromIntent(intent)?.let { pendingTab.value = it }
+        intent.getStringExtra(EXTRA_OPEN_TOOL)?.let { pendingTool.value = it }
         handleDeepLink(intent)
     }
 
@@ -156,5 +166,8 @@ class MainActivity : ComponentActivity() {
 
         /** [EXTRA_OPEN_TAB] 的取值：打开解析页内「设置」Tab */
         const val TAB_SETTINGS = "settings"
+
+        /** 直接打开「功能」页内某个工具的 intent extra 键；值即 ToolsTab 的 route */
+        const val EXTRA_OPEN_TOOL = "com.yunx.app.extra.OPEN_TOOL"
     }
 }

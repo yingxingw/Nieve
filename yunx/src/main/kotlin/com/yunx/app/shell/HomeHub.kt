@@ -67,12 +67,7 @@ fun HomeHub(
                 fontSize = 30.sp,
                 color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onBackground,
             )
-            Text(
-                text = "网盘解析下载 · 开屏广告自动跳过 · Miuix 界面",
-                fontSize = 13.sp,
-                color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onBackground.copy(alpha = 0.72f),
-                modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
-            )
+            Spacer(Modifier.height(14.dp))
 
             // ---------------- 解析下载 ----------------
             SmallTitle(text = "解析下载")

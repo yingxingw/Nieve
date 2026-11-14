@@ -78,14 +78,14 @@
     <!-- 關於 -->
     <string name="vm_about_title">關於 Nieve</string>
     <string name="vm_about_intro_title">應用程式簡介</string>
-    <string name="vm_about_intro_desc">Nieve 是一款集網盤 / 影片連結解析、高速下載與開屏廣告自動跳過於一體的 Android 工具。貼上連結即可：網盤分享能瀏覽內容並高速下載，影片連結能解析出直連與原圖，圖片 / 影片 / 音訊都支援線上預覽播放。</string>
+    <string name="vm_about_intro_desc">Nieve 是由初雪獨立開發與調試的 Android 多功能工具，包含修改步數、七貓小說閱讀與下載、影視大全、音樂搜尋與下載、網頁原始碼擷取、隨機影片、VIP 解析，以及網盤解析下載與開屏廣告跳過。所有工具都收在同一個輕量介面裡，並持續按日常使用習慣打磨。</string>
     <string name="vm_about_license">本專案基於 GNU AGPL-3.0 協議開源</string>
     <string name="vm_about_version_footer">Nieve v%1$s · 酷安初雪 出品</string>
     <string name="vm_about_icon">Nieve 圖示</string>
     <string name="vm_about_app_name">Nieve</string>
     <string name="vm_about_developer">開發者 · 酷安初雪</string>
     <string name="vm_about_version_name">Nieve · v%1$s (%2$d)</string>
-    <string name="vm_about_tagline">解析 · 下載 · 開屏跳過</string>
+    <string name="vm_about_tagline">多功能工具 · 初雪獨立開發與調試</string>
     <string name="vm_about_supported_platforms">支援平台</string>
     <string name="vm_about_drives">網盤</string>
     <string name="vm_about_video_parsing">影片解析</string>

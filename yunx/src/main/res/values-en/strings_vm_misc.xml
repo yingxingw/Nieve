@@ -78,14 +78,14 @@
     <!-- About -->
     <string name="vm_about_title">About Nieve</string>
     <string name="vm_about_intro_title">About the app</string>
-    <string name="vm_about_intro_desc">Nieve is an Android tool that combines drive / video link parsing, high-speed downloads and automatic splash-ad skipping. Paste a link: drive shares can be browsed and downloaded fast; video links are resolved into direct links and original images; images / videos / audio can all be previewed and played online.</string>
+    <string name="vm_about_intro_desc">Nieve is an Android multi-tool independently developed and debugged by Chuxue. It includes step editing, Qimao novel reading and downloading, movie catalog, music search and download, web source capture, random videos, VIP parsing, plus drive parsing/downloads and automatic splash-ad skipping. All tools live in one lightweight interface and are refined around everyday use.</string>
     <string name="vm_about_license">This project is open source under GNU AGPL-3.0</string>
     <string name="vm_about_version_footer">Nieve v%1$s · by 酷安初雪</string>
     <string name="vm_about_icon">Nieve icon</string>
     <string name="vm_about_app_name">Nieve</string>
     <string name="vm_about_developer">Developer · 酷安初雪</string>
     <string name="vm_about_version_name">Nieve · v%1$s (%2$d)</string>
-    <string name="vm_about_tagline">Parsing · downloads · splash-ad skipping</string>
+    <string name="vm_about_tagline">Multi-tool · independently developed and debugged</string>
     <string name="vm_about_supported_platforms">Supported platforms</string>
     <string name="vm_about_drives">Drives</string>
     <string name="vm_about_video_parsing">Video parsing</string>

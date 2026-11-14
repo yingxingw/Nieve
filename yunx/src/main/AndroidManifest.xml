@@ -27,6 +27,11 @@
     <!-- Android 16 实时更新（OPPO ColorOS 16 流体云按此规范接入）：把下载进度提升为「进行中」通知 -->
     <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 功能页：本地音乐扫描（Android 13+ 细分媒体权限，低版本走 READ_EXTERNAL_STORAGE） -->
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
     <!-- 下载调试：读取当前网络类型 / 是否计费 / 链路速率估计（普通权限，安装即授予，无运行时弹窗；
          蜂窝代际 5G/4G 与真正的信号强度还需要 READ_PHONE_STATE / ACCESS_WIFI_STATE 等权限，
          本项目不申请，日志里只记「未区分」，改用系统给的链路速率估计当网络质量指标） -->
@@ -68,6 +73,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
             android:theme="@style/Theme.ComposeEmptyActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

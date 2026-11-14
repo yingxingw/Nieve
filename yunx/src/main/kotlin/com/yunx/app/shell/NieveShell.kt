@@ -18,8 +18,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.CloudDownload
-import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.runtime.collectAsState
@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.yunx.app.tools.ToolsTab
 import com.yunx.app.ui.MainScreen
 import com.yunx.app.ui.GlobalSnackbarHost
 import com.yunx.app.ui.SnackbarController
@@ -54,11 +55,11 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** Shell pages. All four pages now live inside the same shell; 解析 no longer takes over the screen. */
+/** Shell pages. Skip is no longer a tab: it stays reachable from 首页 / 设置 as an inner page. */
 enum class ShellTab(val label: String, val icon: ImageVector) {
     Home("首页", Icons.Rounded.Home),
     YunX("解析", Icons.Rounded.CloudDownload),
-    Skip("跳过", Icons.Rounded.FastForward),
+    Tools("功能", Icons.Rounded.Apps),
     Settings("设置", Icons.Rounded.Settings),
 }
 
@@ -84,6 +85,8 @@ fun NieveShell(
     onIncomingLinkConsumed: () -> Unit,
     incomingAddUrl: String?,
     onIncomingAddUrlConsumed: () -> Unit,
+    initialToolRoute: String? = null,
+    onToolRouteConsumed: () -> Unit = {},
 ) {
     val settings = rememberShellSettings()
     WeaveMagiskTheme(colorMode = settings.colorMode) {
@@ -96,15 +99,23 @@ fun NieveShell(
                 LocalEnableFloatingBottomBarBlur provides settings.blur,
             ) {
                 var pageName by rememberSaveable { mutableStateOf(ShellTab.Home.name) }
-                val page = ShellTab.valueOf(pageName)
-                var skipRoute by rememberSaveable { mutableStateOf("dashboard") }
+                val startToolRoute = remember { initialToolRoute }
+                val page = remember(pageName) {
+                    // 旧版本曾把 "Skip" 存进 pageName，升级后要平滑落到首页，不能直接 valueOf 崩掉。
+                    runCatching { ShellTab.valueOf(pageName) }.getOrDefault(ShellTab.Home)
+                }
+                var skipRoute by rememberSaveable { mutableStateOf<String?>(null) }
                 var yunxSection by remember { mutableStateOf<MainTab?>(null) }
                 var yunxImmersive by remember { mutableStateOf(false) }
+                var toolsImmersive by remember { mutableStateOf(false) }
+                var toolsChromeHidden by remember { mutableStateOf(false) }
                 var settingsPage by rememberSaveable { mutableStateOf<String?>(null) }
+                val openSkip: (String) -> Unit = { route ->
+                    skipRoute = route
+                    settingsPage = null
+                }
                 val selectTab: (ShellTab) -> Unit = { tab ->
-                    if (tab == ShellTab.Skip && page != ShellTab.Skip) {
-                        skipRoute = "dashboard"
-                    }
+                    skipRoute = null
                     pageName = tab.name
                 }
                 val setPage: (ShellTab) -> Unit = { pageName = it.name }
@@ -119,10 +130,25 @@ fun NieveShell(
                 LaunchedEffect(yunxTab) {
                     if (yunxTab != null) setPage(ShellTab.YunX)
                 }
-                BackHandler(enabled = page == ShellTab.YunX) {
+                LaunchedEffect(initialToolRoute) {
+                    if (initialToolRoute != null) {
+                        setPage(ShellTab.Tools)
+                        onToolRouteConsumed()
+                    }
+                }
+                LaunchedEffect(page) {
+                    if (page != ShellTab.Tools) toolsChromeHidden = false
+                }
+                BackHandler(enabled = skipRoute != null) {
+                    skipRoute = null
+                }
+                BackHandler(enabled = skipRoute == null && page == ShellTab.YunX) {
                     setPage(ShellTab.Home)
                 }
-                BackHandler(enabled = page == ShellTab.Settings && settingsPage != null) {
+                BackHandler(enabled = skipRoute == null && page == ShellTab.Tools) {
+                    setPage(ShellTab.Home)
+                }
+                BackHandler(enabled = skipRoute == null && page == ShellTab.Settings && settingsPage != null) {
                     settingsPage = null
                 }
 
@@ -140,6 +166,18 @@ fun NieveShell(
                             .attachBarBlurBackdrop(blurBackdrop)
                     ) {
                         NieveAmbientBackground(dark = isNieveDark(settings.colorMode))
+                        val overlayRoute = skipRoute
+                        if (overlayRoute != null) {
+                            SkipTab(
+                                route = overlayRoute,
+                                onRouteChange = { skipRoute = it },
+                                onOpenAppearance = {
+                                    skipRoute = null
+                                    setPage(ShellTab.Settings)
+                                },
+                                onExitToHome = { skipRoute = null },
+                            )
+                        } else {
                         NievePageTransition(
                             targetState = page,
                             modifier = Modifier.fillMaxSize(),
@@ -160,7 +198,7 @@ fun NieveShell(
                                         yunxSection = MainTab.Drive
                                         setPage(ShellTab.YunX)
                                     },
-                                    onOpenSkip = { setPage(ShellTab.Skip) },
+                                    onOpenSkip = { openSkip("dashboard") },
                                     onOpenSettings = { setPage(ShellTab.Settings) },
                                 )
 
@@ -178,11 +216,10 @@ fun NieveShell(
                                     onImmersiveChanged = { yunxImmersive = it },
                                 )
 
-                                ShellTab.Skip -> SkipTab(
-                                    route = skipRoute,
-                                    onRouteChange = { skipRoute = it },
-                                    onOpenAppearance = { setPage(ShellTab.Settings) },
-                                    onExitToHome = { setPage(ShellTab.Home) },
+                                ShellTab.Tools -> ToolsTab(
+                                    initialRoute = startToolRoute ?: "hub",
+                                    onImmersiveChanged = { toolsImmersive = it },
+                                    onChromeHiddenChanged = { toolsChromeHidden = it },
                                 )
 
                                 ShellTab.Settings -> NievePageTransition(
@@ -196,6 +233,11 @@ fun NieveShell(
                                         onOpenDeveloper = { settingsPage = "developer" },
                                         onOpenCredits = { settingsPage = "credits" },
                                         onOpenPrivacy = { settingsPage = "privacy" },
+                                        onOpenAnnouncements = { settingsPage = "announcements" },
+                                    )
+
+                                    "announcements" -> NieveAnnouncementsScreen(
+                                        onBack = { settingsPage = "about" },
                                     )
 
                                     "developer" -> NieveDeveloperScreen(
@@ -212,14 +254,8 @@ fun NieveShell(
 
                                     else -> ShellSettingsScreen(
                                         settings = settings,
-                                        onOpenSkipSettings = {
-                                            skipRoute = "settings"
-                                            setPage(ShellTab.Skip)
-                                        },
-                                        onOpenSkipWhitelist = {
-                                            skipRoute = "whitelist"
-                                            setPage(ShellTab.Skip)
-                                        },
+                                        onOpenSkipSettings = { openSkip("settings") },
+                                        onOpenSkipWhitelist = { openSkip("whitelist") },
                                         onOpenYunxSettings = {
                                             yunxSection = MainTab.Settings
                                             setPage(ShellTab.YunX)
@@ -231,9 +267,10 @@ fun NieveShell(
                                 }
                             }
                         }
+                        }
                     }
 
-                    if (settings.floatingBar && (page != ShellTab.YunX || !yunxImmersive)) {
+                    if (settings.floatingBar && !toolsImmersive && !toolsChromeHidden && (page != ShellTab.YunX || !yunxImmersive)) {
                         FloatingBottomBar(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
@@ -241,7 +278,7 @@ fun NieveShell(
                                     bottom = 12.dp + WindowInsets.navigationBars
                                         .asPaddingValues().calculateBottomPadding()
                                 ),
-                            selectedIndex = { ShellTab.valueOf(pageName).ordinal },
+                            selectedIndex = { page.ordinal },
                             onSelected = { selectTab(ShellTab.entries[it]) },
                             backdrop = blurBackdrop ?: barBackdrop,
                             tabsCount = ShellTab.entries.size,
@@ -249,7 +286,7 @@ fun NieveShell(
                             isLiquidGlassEnabled = settings.blur,
                         ) {
                             ShellTab.entries.forEach { tab ->
-                                val selected = tab.name == pageName
+                                val selected = tab == page
                                 FloatingBottomBarItem(
                                     onClick = { selectTab(tab) },
                                     modifier = Modifier.defaultMinSize(minWidth = 76.dp)

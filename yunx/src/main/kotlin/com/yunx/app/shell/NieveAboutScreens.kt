@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.ErrorOutline
@@ -55,10 +56,9 @@ import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import java.util.concurrent.TimeUnit
 
-/** 检查更新数据源：GitHub 上的 Nieve 更新通道。 */
+/** 检查更新数据源：GitHub 上的 Nieve 源码仓库。 */
 object NieveUpdater {
-    const val UPDATE_URL =
-        "https://raw.githubusercontent.com/yingxingw/nieve-update/main/update.json"
+    const val UPDATE_URL = NieveRemote.UPDATE_URL
 
     data class UpdateInfo(
         val versionCode: Int,
@@ -67,40 +67,41 @@ object NieveUpdater {
         val downloadUrl: String,
         val changelog: String,
         val updateDate: String,
+        val forceUpdate: Boolean = false,
+        val disabledMessage: String = "",
     )
 
     sealed interface CheckResult {
         data object UpToDate : CheckResult
         data class UpdateAvailable(val info: UpdateInfo) : CheckResult
+        data class Disabled(val message: String) : CheckResult
         data class Failed(val message: String) : CheckResult
     }
 
-    suspend fun check(currentVersionCode: Int): CheckResult = withContext(Dispatchers.IO) {
-        runCatching {
-            val client = OkHttpClient.Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(15, TimeUnit.SECONDS)
-                .build()
-            val request = Request.Builder().url(UPDATE_URL).build()
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return@runCatching CheckResult.Failed("更新源不可用（HTTP ${response.code}）")
-                val body = response.body?.string().orEmpty()
-                val json = JSONObject(body)
+    suspend fun check(currentVersionCode: Int): CheckResult {
+        return when (val result = NieveRemote.fetchConfig()) {
+            is NieveRemote.ConfigResult.Failed -> CheckResult.Failed(result.message)
+            is NieveRemote.ConfigResult.Ok -> {
+                val config = result.config
                 val info = UpdateInfo(
-                    versionCode = json.optInt("versionCode", 0),
-                    versionName = json.optString("versionName", "?"),
-                    minVersionCode = json.optInt("minVersionCode", 0),
-                    downloadUrl = json.optString("downloadUrl", ""),
-                    changelog = json.optString("changelog", ""),
-                    updateDate = json.optString("updateDate", ""),
+                    versionCode = config.versionCode,
+                    versionName = config.versionName,
+                    minVersionCode = config.minVersionCode,
+                    downloadUrl = config.downloadUrl,
+                    changelog = config.changelog,
+                    updateDate = config.updateDate,
+                    forceUpdate = config.forceUpdate,
+                    disabledMessage = config.disabledMessage,
                 )
-                if (info.versionCode > currentVersionCode) {
-                    CheckResult.UpdateAvailable(info)
-                } else {
-                    CheckResult.UpToDate
+                when {
+                    config.disabled -> CheckResult.Disabled(config.disabledMessage)
+                    config.versionCode > currentVersionCode -> CheckResult.UpdateAvailable(info)
+                    config.minVersionCode > currentVersionCode ->
+                        CheckResult.UpdateAvailable(info.copy(forceUpdate = true))
+                    else -> CheckResult.UpToDate
                 }
             }
-        }.getOrElse { CheckResult.Failed("网络异常，请稍后重试") }
+        }
     }
 }
 
@@ -147,6 +148,7 @@ fun NieveAboutScreen(
     onOpenDeveloper: () -> Unit,
     onOpenCredits: () -> Unit,
     onOpenPrivacy: () -> Unit,
+    onOpenAnnouncements: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -183,7 +185,7 @@ fun NieveAboutScreen(
             )
             ArrowPreference(
                 title = "检查更新",
-                summary = "从 GitHub 更新通道获取最新版本信息",
+                summary = "从 Nieve 源码仓库获取最新版本、强制更新与停用配置",
                 startAction = {
                     Icon(
                         if (checking) Icons.Rounded.Refresh else Icons.Rounded.SystemUpdate,
@@ -200,6 +202,14 @@ fun NieveAboutScreen(
                         }
                     }
                 },
+            )
+            ArrowPreference(
+                title = "公告",
+                summary = "查看开发者公告与版本通知",
+                startAction = {
+                    Icon(Icons.Rounded.Campaign, modifier = Modifier.padding(end = 6.dp), contentDescription = null)
+                },
+                onClick = onOpenAnnouncements,
             )
             ArrowPreference(
                 title = "开发者",
@@ -242,22 +252,43 @@ fun NieveAboutScreen(
             }
 
             is NieveUpdater.CheckResult.UpdateAvailable -> NieveGlassDialog(
-                onDismissRequest = { checkResult = null },
-                title = "发现新版本 ${result.info.versionName}",
+                onDismissRequest = {
+                    if (!result.info.forceUpdate) checkResult = null
+                },
+                title = if (result.info.forceUpdate) {
+                    "必须更新到 v${result.info.versionName}"
+                } else {
+                    "发现新版本 ${result.info.versionName}"
+                },
                 confirmText = "前往下载",
                 onConfirm = {
                     checkResult = null
-                    if (result.info.downloadUrl.isNotBlank()) {
-                        openUrl(context, result.info.downloadUrl)
-                    }
+                    openUrl(
+                        context,
+                        result.info.downloadUrl.ifBlank { NieveRemote.FALLBACK_WEB },
+                    )
                 },
-                dismissText = "以后再说",
-                onDismiss = { checkResult = null },
+                dismissText = if (result.info.forceUpdate) null else "以后再说",
+                onDismiss = { if (!result.info.forceUpdate) checkResult = null },
+                dismissible = !result.info.forceUpdate,
             ) {
                 Text(
-                    "发布日期：${result.info.updateDate}\n\n" +
+                    if (result.info.updateDate.isBlank()) {
                         "更新内容：\n${result.info.changelog}"
+                    } else {
+                        "发布日期：${result.info.updateDate}\n\n" +
+                            "更新内容：\n${result.info.changelog}"
+                    }
                 )
+            }
+
+            is NieveUpdater.CheckResult.Disabled -> NieveGlassDialog(
+                onDismissRequest = { checkResult = null },
+                title = "软件已暂停使用",
+                confirmText = "好的",
+                onConfirm = { checkResult = null },
+            ) {
+                Text(result.message.ifBlank { "请等待后续版本。" })
             }
 
             is NieveUpdater.CheckResult.Failed -> NieveGlassDialog(
@@ -298,8 +329,9 @@ fun NieveDeveloperScreen(onBack: () -> Unit) {
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = "独立开发者，Android 深度玩家。\n" +
-                        "喜欢折腾刷机、工具开发，Nieve 是继刷机工具箱之后的又一款自用三合一应用：" +
-                        "把网盘解析下载、开屏广告自动跳过装进同一个液态玻璃壳里。\n\n" +
+                        "Nieve 由初雪独立开发与调试，围绕日常使用习惯持续打磨：" +
+                        "修改步数、七猫小说阅读与下载、影视大全、音乐搜索与下载、网页源码抓取、随机视频，" +
+                        "以及 VIP 解析等工具都收在同一个轻量壳里。\n\n" +
                         "如果 Nieve 帮到了你，欢迎在酷安 / GitHub 上反馈问题。",
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
@@ -409,7 +441,8 @@ fun NievePrivacyScreen(onBack: () -> Unit) {
                         "应用联网仅用于：\n" +
                         "· 你主动发起的分享链接解析与文件下载；\n" +
                         "· 自动跳过功能的云端规则同步（规则文件托管在 skip.guoxicheng.top）；\n" +
-                        "· 「检查更新」从 GitHub 更新通道（github.com/yingxingw/nieve-update）拉取版本信息。\n\n" +
+                        "· 「检查更新」从当前源码仓库（github.com/yingxingw/Nieve）读取 update.json；" +
+                        "公告从 github.com/yingxingw/nieve-update 读取 announcements.json。\n\n" +
                         "4. 无障碍服务\n" +
                         "无障碍服务只用于自动点击「跳过」按钮，不读取、不上传屏幕内容；" +
                         "跳过日志仅保存在本地，可随时在设置中关闭。\n\n" +

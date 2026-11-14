@@ -1,5 +1,6 @@
 package com.yunx.app.shell
 
+import android.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -13,13 +14,18 @@ import java.util.concurrent.TimeUnit
  * - 版本 / 强制更新 / 禁用开关：当前源码仓库根目录的 update.json
  * - 多份公告：旧的 nieve-update 仓库根目录的 announcements.json
  *
- * 读取失败一律回退为“正常可用”，避免网络波动把本地应用锁死。
+ * 优先走 GitHub Contents API（提交后立即可读，不受 raw CDN 缓存影响），
+ * API 失败时回退 raw 文件。读取失败一律回退为“正常可用”。
  */
 object NieveRemote {
     const val UPDATE_URL =
         "https://raw.githubusercontent.com/yingxingw/Nieve/main/update.json"
     const val ANNOUNCEMENT_URL =
         "https://raw.githubusercontent.com/yingxingw/nieve-update/main/announcements.json"
+    private const val UPDATE_API_URL =
+        "https://api.github.com/repos/yingxingw/Nieve/contents/update.json"
+    private const val ANNOUNCEMENT_API_URL =
+        "https://api.github.com/repos/yingxingw/nieve-update/contents/announcements.json"
     const val FALLBACK_WEB = "https://github.com/yingxingw/Nieve"
 
     data class Config(
@@ -58,8 +64,10 @@ object NieveRemote {
         .build()
 
     private fun fetchText(url: String): Result<String> = runCatching {
+        // raw.githubusercontent.com 有 CDN 缓存；每次追加时间戳，保证远程开关能尽快生效。
+        val cacheBusted = url + (if (url.contains('?')) "&" else "?") + "t=" + System.currentTimeMillis()
         val request = Request.Builder()
-            .url(url)
+            .url(cacheBusted)
             .header("Cache-Control", "no-cache")
             .header("User-Agent", "Nieve")
             .get()
@@ -73,8 +81,25 @@ object NieveRemote {
         }
     }
 
+    /** GitHub Contents API 会把文件内容放进 base64 的 content 字段。 */
+    private fun decodeApiContent(body: String): String {
+        val json = JSONObject(body)
+        if (!json.has("content")) error("不是文件内容")
+        if (json.optString("encoding") == "base64") {
+            val encoded = json.optString("content").replace("\n", "")
+            return String(Base64.decode(encoded, Base64.DEFAULT), Charsets.UTF_8)
+        }
+        return json.optString("content")
+    }
+
+    private fun fetchApiOrRaw(apiUrl: String, rawUrl: String): Result<String> {
+        val api = fetchText(apiUrl).mapCatching { decodeApiContent(it) }
+        if (api.isSuccess) return api
+        return fetchText(rawUrl)
+    }
+
     suspend fun fetchConfig(): ConfigResult = withContext(Dispatchers.IO) {
-        val body = fetchText(UPDATE_URL).getOrElse {
+        val body = fetchApiOrRaw(UPDATE_API_URL, UPDATE_URL).getOrElse {
             return@withContext ConfigResult.Failed(it.message ?: "无法连接更新通道")
         }
         try {
@@ -102,7 +127,7 @@ object NieveRemote {
     }
 
     suspend fun fetchAnnouncements(): AnnouncementFeed = withContext(Dispatchers.IO) {
-        val body = fetchText(ANNOUNCEMENT_URL).getOrElse {
+        val body = fetchApiOrRaw(ANNOUNCEMENT_API_URL, ANNOUNCEMENT_URL).getOrElse {
             return@withContext AnnouncementFeed(emptyList(), it.message ?: "无法连接公告通道")
         }
         runCatching {

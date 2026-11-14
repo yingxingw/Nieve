@@ -50,6 +50,8 @@ Nieve 围绕日常使用和 Android 深度折腾持续迭代，把常用的小�
 https://raw.githubusercontent.com/yingxingw/Nieve/main/update.json
 ```
 
+应用优先通过 GitHub Contents API 读取该文件，提交后立即生效；API 不可用时回退 raw 地址。
+
 字段：
 
 ```json

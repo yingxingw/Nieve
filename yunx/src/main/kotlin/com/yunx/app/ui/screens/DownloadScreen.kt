@@ -123,6 +123,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import com.yunx.app.shell.nieveGlassBorder
 import com.yunx.app.shell.nieveGlassFill
+import com.yunx.app.shell.nieveGlassHighlight
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -667,12 +668,14 @@ private fun FolderDownloadGroup(
     } else 0f
     val done = completed == tasks.size
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
+    val shape = RoundedCornerShape(22.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(color = nieveGlassFill(), shape = shape)
+            .background(nieveGlassHighlight(), shape)
+            .border(1.dp, nieveGlassBorder(), shape)
     ) {
         Column {
             // 头部：点击展开/收起
@@ -834,7 +837,8 @@ private fun DownloadSubTaskRow(
                 onLongClick = { showMenu = true }
             ),
         shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer
+        color = nieveGlassFill(),
+        border = androidx.compose.foundation.BorderStroke(1.dp, nieveGlassBorder())
     ) {
         Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -842,14 +846,14 @@ private fun DownloadSubTaskRow(
                 Surface(
                     modifier = Modifier.size(32.dp),
                     shape = RoundedCornerShape(9.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Outlined.InsertDriveFile,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -1030,12 +1034,7 @@ private fun DownloadTaskCard(
             .fillMaxWidth()
             .clip(nieveCardShape)
             .background(color = nieveGlassFill(), shape = nieveCardShape)
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color.White.copy(alpha = 0.30f), Color.Transparent)
-                ),
-                nieveCardShape
-            )
+            .background(nieveGlassHighlight(), nieveCardShape)
             .border(1.dp, nieveGlassBorder(), nieveCardShape)
             .combinedClickable(
                 onClick = {},
@@ -1047,14 +1046,14 @@ private fun DownloadTaskCard(
                 Surface(
                     modifier = Modifier.size(40.dp),
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Outlined.InsertDriveFile,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 }

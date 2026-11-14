@@ -5,13 +5,25 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -24,7 +36,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 
 /**
  * Nieve 的 Material3 配色：深色模式统一为纯黑底，浅色模式保持干净的冷白，
@@ -208,5 +223,143 @@ fun NieveGlassIconButton(
             modifier = Modifier.size(20.dp),
             tint = MaterialTheme.colorScheme.primary
         )
+    }
+}
+
+/**
+ * Nieve 通用液态玻璃弹窗：替换 M3 原生 AlertDialog。
+ * 半透明玻璃面板 + 顶部高光 + 细描边，标题左对齐，底部按钮是胶囊。
+ */
+@Composable
+fun NieveGlassDialog(
+    onDismissRequest: () -> Unit,
+    title: String,
+    modifier: Modifier = Modifier,
+    confirmText: String? = null,
+    onConfirm: (() -> Unit)? = null,
+    dismissText: String? = null,
+    onDismiss: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismissRequest,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        val shape = RoundedCornerShape(28.dp)
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 22.dp)
+                .clip(shape)
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.97f), shape)
+                .background(nieveGlassHighlight(), shape)
+                .border(1.dp, nieveGlassBorder(), shape)
+                .padding(horizontal = 20.dp, vertical = 20.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(14.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 500.dp)
+                    .verticalScroll(rememberScrollState()),
+                content = content
+            )
+            if (confirmText != null || dismissText != null) {
+                Spacer(Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (dismissText != null) {
+                        val dismissShape = RoundedCornerShape(50)
+                        Box(
+                            modifier = Modifier
+                                .clip(dismissShape)
+                                .clickable { onDismiss?.invoke() ?: onDismissRequest() }
+                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = dismissText,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    if (confirmText != null) {
+                        Spacer(Modifier.width(8.dp))
+                        val confirmShape = RoundedCornerShape(50)
+                        Box(
+                            modifier = Modifier
+                                .clip(confirmShape)
+                                .background(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                                    confirmShape
+                                )
+                                .border(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.40f),
+                                    confirmShape
+                                )
+                                .clickable { onConfirm?.invoke() ?: onDismissRequest() }
+                                .padding(horizontal = 18.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = confirmText,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** 玻璃弹窗里的单个可选行：选中时主题色淡染 + 描边，右侧可带勾选点。 */
+@Composable
+fun NieveDialogOption(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    trailing: @Composable (() -> Unit)? = null,
+) {
+    val shape = RoundedCornerShape(16.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(
+                if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                else Color.Transparent,
+                shape
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (selected) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.onSurface,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            modifier = Modifier.weight(1f)
+        )
+        if (trailing != null) trailing()
+        else if (selected) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
+            )
+        }
     }
 }

@@ -90,6 +90,7 @@ import androidx.compose.ui.graphics.Color
 import com.yunx.app.shell.nieveGlassBorder
 import com.yunx.app.shell.nieveGlassFill
 import com.yunx.app.shell.nieveGlassHighlight
+import com.yunx.app.shell.NieveGlassDialog
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -999,7 +1000,7 @@ private fun DriveAccountCardContent(
                 contentDescription = null,
                 modifier = Modifier
                     .size(40.dp)
-                    .alpha(if (account.isLoggedIn) 1f else 0.45f),
+                    .alpha(if (account.isLoggedIn) 1f else 0.85f),
                 contentScale = ContentScale.Fit
             )
         } else {
@@ -1186,106 +1187,91 @@ private fun DriveSortDialog(
     // 列表高度跟着屏幕走：竖屏能多显示几行，横屏/小屏自动缩到约 42% 屏高，
     // 否则 11 行顶出去会把「完成」按钮挤出可视区。
     val maxListHeight = (LocalConfiguration.current.screenHeightDp * 0.42f).dp
-    AlertDialog(
+    NieveGlassDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(26.dp),
-        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-        tonalElevation = 0.dp,
-        title = { Text(stringResource(R.string.csb_drive_sort_title)) },
-        text = {
-            Column {
-                // 整行可点：Switch 本身触摸区不大，整行点能少一脚踩空
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onToggleHide(!hideUnlogged) }
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(text = stringResource(R.string.csb_drive_hide_unlogged), style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            text = stringResource(R.string.csb_drive_hide_unlogged_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(checked = hideUnlogged, onCheckedChange = onToggleHide)
-                }
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+        title = stringResource(R.string.csb_drive_sort_title),
+        confirmText = stringResource(R.string.csb_drive_done),
+        onConfirm = onDismiss
+    ) {
+        // 整行可点：Switch 本身触摸区不大，整行点能少一脚踩空
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onToggleHide(!hideUnlogged) }
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = stringResource(R.string.csb_drive_hide_unlogged), style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    text = stringResource(R.string.csb_drive_hide_unlogged_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(checked = hideUnlogged, onCheckedChange = onToggleHide)
+        }
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.csb_drive_order_label),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f)
+            )
+            TextButton(onClick = onReset) { Text(stringResource(R.string.csb_drive_restore_default)) }
+        }
+        accounts.forEachIndexed { index, account ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${index + 1}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.width(22.dp)
+                )
+                Text(
+                    text = account.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                if (!account.isLoggedIn) {
                     Text(
-                        text = stringResource(R.string.csb_drive_order_label),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f)
+                        text = stringResource(R.string.csb_drive_not_logged_in),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(end = 4.dp)
                     )
-                    TextButton(onClick = onReset) { Text(stringResource(R.string.csb_drive_restore_default)) }
                 }
-                // 11 行会超出 AlertDialog 的默认高度：给高度上限再滚动，别把「完成」顶出屏幕
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = maxListHeight)
-                        .verticalScroll(rememberScrollState())
+                // 首行禁用上移、末行禁用下移：边界点不动，避免「点了没反应」的疑惑
+                IconButton(
+                    onClick = { onMove(index, index - 1) },
+                    enabled = index > 0
                 ) {
-                    accounts.forEachIndexed { index, account ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "${index + 1}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.width(22.dp)
-                            )
-                            Text(
-                                text = account.name,
-                                style = MaterialTheme.typography.bodyLarge,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f)
-                            )
-                            if (!account.isLoggedIn) {
-                                Text(
-                                    text = stringResource(R.string.csb_drive_not_logged_in),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.outline,
-                                    modifier = Modifier.padding(end = 4.dp)
-                                )
-                            }
-                            // 首行禁用上移、末行禁用下移：边界点不动，避免「点了没反应」的疑惑
-                            IconButton(
-                                onClick = { onMove(index, index - 1) },
-                                enabled = index > 0
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.KeyboardArrowUp,
-                                    contentDescription = stringResource(R.string.csb_drive_move_up, account.name)
-                                )
-                            }
-                            IconButton(
-                                onClick = { onMove(index, index + 1) },
-                                enabled = index < accounts.lastIndex
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.KeyboardArrowDown,
-                                    contentDescription = stringResource(R.string.csb_drive_move_down, account.name)
-                                )
-                            }
-                        }
-                    }
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowUp,
+                        contentDescription = stringResource(R.string.csb_drive_move_up, account.name)
+                    )
+                }
+                IconButton(
+                    onClick = { onMove(index, index + 1) },
+                    enabled = index < accounts.lastIndex
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowDown,
+                        contentDescription = stringResource(R.string.csb_drive_move_down, account.name)
+                    )
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.csb_drive_done)) }
         }
-    )
+    }
 }

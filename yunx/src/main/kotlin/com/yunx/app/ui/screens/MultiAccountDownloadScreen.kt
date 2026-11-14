@@ -19,7 +19,10 @@
 package com.yunx.app.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -97,14 +100,23 @@ fun MultiAccountDownloadScreen(onBack: () -> Unit, modifier: Modifier = Modifier
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.dl_ma_title), style = MaterialTheme.typography.titleLarge) },
+                title = {
+                    Text(
+                        text = stringResource(R.string.dl_ma_title),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
-                    }
+                    com.yunx.app.shell.NieveGlassIconButton(
+                        icon = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.action_back),
+                        modifier = Modifier.padding(start = 12.dp),
+                        onClick = onBack
+                    )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                    containerColor = androidx.compose.ui.graphics.Color.Transparent
                 )
             )
         }
@@ -116,13 +128,23 @@ fun MultiAccountDownloadScreen(onBack: () -> Unit, modifier: Modifier = Modifier
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 16.dp)
         ) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer
-                )
+            val introShape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(introShape)
+                    .background(
+                        color = com.yunx.app.shell.nieveGlassFill(),
+                        shape = introShape
+                    )
+                    .background(com.yunx.app.shell.nieveGlassHighlight(), introShape)
+                    .border(
+                        1.dp,
+                        com.yunx.app.shell.nieveGlassBorder(),
+                        introShape
+                    )
+                    .padding(16.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = stringResource(R.string.dl_ma_intro),
                         style = MaterialTheme.typography.bodyMedium
@@ -145,7 +167,6 @@ fun MultiAccountDownloadScreen(onBack: () -> Unit, modifier: Modifier = Modifier
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -207,37 +228,34 @@ fun MultiAccountDownloadScreen(onBack: () -> Unit, modifier: Modifier = Modifier
     }
 
     pendingRisk?.let { risk ->
-        AlertDialog(
+        com.yunx.app.shell.NieveGlassDialog(
             onDismissRequest = { pendingRisk = null },
-            title = { Text(stringResource(risk.titleRes)) },
-            text = { Text(stringResource(risk.messageRes)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        when (risk) {
-                            SwitchRisk.MULTI_ACCOUNT -> {
-                                multiAccount = true
-                                settingsRepo.multiAccountDownload = true
-                                SnackbarController.show(AppStrings.get(R.string.dl_ma_on))
-                            }
-                            SwitchRisk.MULTI_SOURCE -> {
-                                multiSource = true
-                                settingsRepo.multiSourceDownload = true
-                                SnackbarController.show(AppStrings.get(R.string.dl_ms_on))
-                            }
-                        }
-                        pendingRisk = null
+            title = stringResource(risk.titleRes),
+            confirmText = stringResource(R.string.dl_confirm_enable),
+            onConfirm = {
+                when (risk) {
+                    SwitchRisk.MULTI_ACCOUNT -> {
+                        multiAccount = true
+                        settingsRepo.multiAccountDownload = true
+                        SnackbarController.show(AppStrings.get(R.string.dl_ma_on))
                     }
-                ) {
-                    Text(text = stringResource(R.string.dl_confirm_enable), color = MaterialTheme.colorScheme.error)
+                    SwitchRisk.MULTI_SOURCE -> {
+                        multiSource = true
+                        settingsRepo.multiSourceDownload = true
+                        SnackbarController.show(AppStrings.get(R.string.dl_ms_on))
+                    }
                 }
+                pendingRisk = null
             },
-            dismissButton = {
-                TextButton(onClick = { pendingRisk = null }) {
-                    Text(text = stringResource(R.string.action_cancel))
-                }
-            }
-        )
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { pendingRisk = null }
+        ) {
+            Text(
+                text = stringResource(risk.messageRes),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
@@ -274,10 +292,13 @@ private fun MultiAccountSwitchRow(
     //   尾部 Switch 自己不处理点击 —— 这样 TalkBack 读出来的是「多账号下载，已开启」，
     //   而不是一个没有名字、也不知道开的是什么的开关。
     val interactionSource = remember { MutableInteractionSource() }
-    Card(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
+            .background(color = com.yunx.app.shell.nieveGlassFill(), shape = shape)
+            .background(com.yunx.app.shell.nieveGlassHighlight(), shape)
+            .border(1.dp, com.yunx.app.shell.nieveGlassBorder(), shape)
             .toggleable(
                 value = checked,
                 // enabled=false 时整行连水波纹都没有，用户点不动也听不出焦点（C2 依赖 C1）
@@ -286,11 +307,7 @@ private fun MultiAccountSwitchRow(
                 interactionSource = interactionSource,
                 indication = ripple(bounded = true),
                 onValueChange = onCheckedChange
-            ),
-        shape = shape,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
+            )
     ) {
         Row(
             modifier = Modifier

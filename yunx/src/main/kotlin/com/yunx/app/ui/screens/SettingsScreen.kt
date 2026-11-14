@@ -116,6 +116,8 @@ import androidx.compose.ui.graphics.Shape
 import com.yunx.app.shell.nieveGlassBorder
 import com.yunx.app.shell.nieveGlassFill
 import com.yunx.app.shell.nieveGlassHighlight
+import com.yunx.app.shell.NieveDialogOption
+import com.yunx.app.shell.NieveGlassDialog
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -931,117 +933,78 @@ fun SettingsScreen(
 
     // 线程数选择弹窗（按平台）
     if (showThreadsDialog) {
-        AlertDialog(
+        NieveGlassDialog(
             onDismissRequest = { showThreadsDialog = false },
-            shape = RoundedCornerShape(26.dp),
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-            tonalElevation = 0.dp,
-            title = { Text(stringResource(R.string.dialog_threads_title)) },
-            text = {
-                // 横屏/小屏时内容超高可滚动，避免按钮被挤出屏幕
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 420.dp)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    Text(
-                        text = stringResource(R.string.dialog_threads_hint),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    threadPlatforms.forEach { item ->
-                        val current = settingsRepo.downloadThreadsFor(item.platform)
-                        val isXunlei = item.platform == DownloadPlatform.XUNLEI
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(enabled = !isXunlei) {
-                                    selectedThreadPlatform = item
-                                    showPlatformThreadDialog = true
-                                }
-                                .padding(vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = stringResource(item.label),
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.weight(1f)
-                            )
+            title = stringResource(R.string.dialog_threads_title),
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { showThreadsDialog = false }
+        ) {
+            Text(
+                text = stringResource(R.string.dialog_threads_hint),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            threadPlatforms.forEach { item ->
+                val current = settingsRepo.downloadThreadsFor(item.platform)
+                val isXunlei = item.platform == DownloadPlatform.XUNLEI
+                NieveDialogOption(
+                    text = stringResource(item.label),
+                    selected = false,
+                    onClick = {
+                        if (!isXunlei) {
+                            selectedThreadPlatform = item
+                            showPlatformThreadDialog = true
+                        }
+                    },
+                    trailing = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = if (isXunlei) stringResource(R.string.dialog_threads_fixed)
                                 else stringResource(R.string.dialog_threads_count, current),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = if (isXunlei) {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                } else {
-                                    MaterialTheme.colorScheme.primary
-                                }
+                                color = if (isXunlei) MaterialTheme.colorScheme.onSurfaceVariant
+                                else MaterialTheme.colorScheme.primary
                             )
                             if (!isXunlei) {
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Icon(
                                     Icons.Outlined.ChevronRight,
                                     contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
                     }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showThreadsDialog = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
+                )
             }
-        )
+        }
     }
 
     // 单个平台线程数选择（二级弹窗）
     if (showPlatformThreadDialog) {
         val current = settingsRepo.downloadThreadsFor(selectedThreadPlatform.platform)
-        AlertDialog(
+        NieveGlassDialog(
             onDismissRequest = { showPlatformThreadDialog = false },
-            shape = RoundedCornerShape(26.dp),
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-            tonalElevation = 0.dp,
-            title = { Text(stringResource(R.string.dialog_platform_threads_title, stringResource(selectedThreadPlatform.label))) },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .heightIn(max = 320.dp)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    threadOptions.chunked(2).forEach { rowValues ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            rowValues.forEach { value ->
-                                RadioThreadRow(
-                                    value = value,
-                                    threads = current,
-                                    onSelect = { v ->
-                                        settingsRepo.setDownloadThreads(selectedThreadPlatform.platform, v)
-                                        showPlatformThreadDialog = false
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                            // 奇数个时补空占位，保持两列对齐
-                            if (rowValues.size == 1) Spacer(modifier = Modifier.weight(1f))
-                        }
+            title = stringResource(
+                R.string.dialog_platform_threads_title,
+                stringResource(selectedThreadPlatform.label)
+            ),
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { showPlatformThreadDialog = false }
+        ) {
+            threadOptions.forEach { value ->
+                NieveDialogOption(
+                    text = stringResource(R.string.dialog_threads_count, value),
+                    selected = current == value,
+                    onClick = {
+                        settingsRepo.setDownloadThreads(selectedThreadPlatform.platform, value)
+                        showPlatformThreadDialog = false
                     }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showPlatformThreadDialog = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
+                )
             }
-        )
+        }
     }
 
     // 导出认证信息弹窗（AES 加密密码 + 导出范围）

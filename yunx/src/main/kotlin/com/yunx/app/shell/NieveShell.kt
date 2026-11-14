@@ -1,7 +1,7 @@
 package com.yunx.app.shell
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -130,21 +130,9 @@ fun NieveShell(
                             .attachBarBlurBackdrop(blurBackdrop)
                     ) {
                         NieveAmbientBackground(dark = isNieveDark(settings.colorMode))
-                        AnimatedContent(
+                        Crossfade(
                             targetState = page,
-                            transitionSpec = {
-                                val forward = targetState.ordinal > initialState.ordinal
-                                val slide = tween<androidx.compose.ui.unit.IntOffset>(
-                                    durationMillis = 320,
-                                    easing = FastOutSlowInEasing,
-                                )
-                                val dir = if (forward) 1 else -1
-                                (fadeIn(tween(220)) + slideInHorizontally(slide) { it / 3 * dir })
-                                    .togetherWith(
-                                        fadeOut(tween(170)) +
-                                            slideOutHorizontally(slide) { -it / 3 * dir }
-                                    )
-                            },
+                            animationSpec = tween(120),
                             label = "shellPage",
                         ) { current ->
                             when (current) {

@@ -22,7 +22,18 @@ class ShellSettingsStore(context: Context) {
         context.getSharedPreferences("weavex_settings", Context.MODE_PRIVATE)
 
     var colorMode: Int
-        get() = prefs.getInt("color_mode", 2)
+        get() {
+            // 老版本默认写死 2（深色）：首次升级到「默认跟随系统」时纠正一次，
+            // 之后用户手动选的模式仍然生效。
+            if (!prefs.getBoolean("color_mode_system_default_v1", false)) {
+                prefs.edit()
+                    .putInt("color_mode", 0)
+                    .putBoolean("color_mode_system_default_v1", true)
+                    .apply()
+                return 0
+            }
+            return prefs.getInt("color_mode", 0)
+        }
         set(value) = prefs.edit().putInt("color_mode", value).apply()
 
     var blur: Boolean

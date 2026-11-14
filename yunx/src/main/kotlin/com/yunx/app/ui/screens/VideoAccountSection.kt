@@ -23,7 +23,11 @@ import com.yunx.app.R
 import com.yunx.app.util.AppStrings
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,6 +35,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -41,10 +46,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.yunx.app.shell.nieveGlassBorder
+import com.yunx.app.shell.nieveGlassFill
+import com.yunx.app.shell.nieveGlassHighlight
 import com.yunx.app.data.db.VideoAccountEntity
 import com.yunx.app.data.network.video.VideoParsers
 import com.yunx.app.data.network.video.VideoPlatform
@@ -128,10 +137,13 @@ private fun VideoPlatformCard(
         account != null -> { { onManage(platform) } }
         else -> { { onLogin(platform) } }
     }
-    val cardShape = MaterialTheme.shapes.large
-    val cardColors = CardDefaults.cardColors(
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-    )
+    val cardShape = RoundedCornerShape(22.dp)
+    val glassModifier = Modifier
+        .fillMaxWidth()
+        .clip(cardShape)
+        .background(color = nieveGlassFill(), shape = cardShape)
+        .background(nieveGlassHighlight(), cardShape)
+        .border(1.dp, nieveGlassBorder(), cardShape)
     val content: @Composable () -> Unit = {
         VideoPlatformCardContent(
             platform = platform,
@@ -143,18 +155,9 @@ private fun VideoPlatformCard(
     }
 
     if (onClick != null) {
-        Card(
-            onClick = onClick,
-            modifier = Modifier.fillMaxWidth(),
-            shape = cardShape,
-            colors = cardColors
-        ) { content() }
+        Box(modifier = glassModifier.clickable(onClick = onClick)) { content() }
     } else {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = cardShape,
-            colors = cardColors
-        ) { content() }
+        Box(modifier = glassModifier) { content() }
     }
 }
 
@@ -184,7 +187,7 @@ private fun VideoPlatformCardContent(
             contentDescription = null,
             modifier = Modifier
                 .size(40.dp)
-                .alpha(if (platform.needsLogin && account == null) 0.45f else 1f),
+                .alpha(if (platform.needsLogin && account == null) 0.85f else 1f),
             contentScale = ContentScale.Fit
         )
 
@@ -210,9 +213,29 @@ private fun VideoPlatformCardContent(
 
         when {
             !enabled -> Unit
-            account != null -> TextButton(onClick = { onManage(platform) }) { Text(stringResource(R.string.sh_manage)) }
-            else -> TextButton(onClick = { onLogin(platform) }) { Text(stringResource(R.string.sh_login)) }
+            account != null -> LoginPill(text = stringResource(R.string.sh_manage), onClick = { onManage(platform) })
+            else -> LoginPill(text = stringResource(R.string.sh_login), onClick = { onLogin(platform) })
         }
+    }
+}
+
+/** 与网盘卡片一致的冰蓝药丸按钮 */
+@Composable
+private fun LoginPill(text: String, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(50)
+    Box(
+        modifier = Modifier
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), shape)
+            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.34f), shape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
     }
 }
 

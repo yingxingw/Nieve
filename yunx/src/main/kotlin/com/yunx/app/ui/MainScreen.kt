@@ -21,6 +21,7 @@ package com.yunx.app.ui
 import com.yunx.app.ui.theme.useNavigationRail
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.core.animateDpAsState
@@ -1159,20 +1160,9 @@ fun MainScreen(
                 val tabFadeSpec = motionScheme.defaultEffectsSpec<Float>()
                 // Tab 内容区（竖屏 / 横屏共用）：每个页面独立保存状态，切换 Tab 再切回来不丢失；带 Material3 过渡动画（按 Tab 顺序决定方向）
                 val tabContent: @Composable () -> Unit = {
-                    AnimatedContent(
+                    Crossfade(
                         targetState = currentTab,
-                        transitionSpec = {
-                            // 根据 Tab 顺序决定滑动方向：向右切（新Tab在右边）→ 新页从右滑入；向左切反向
-                            val forward = targetState.ordinal > initialState.ordinal
-                            // 位移/尺寸走 spatial 弹簧，透明度/颜色走 effects 弹簧（替代原来的 tween(220)/tween(160)）
-                            if (forward) {
-                                (fadeIn(tabFadeSpec) + slideInHorizontally(tabSlideSpec) { it / 4 })
-                                    .togetherWith(fadeOut(tabFadeSpec) + slideOutHorizontally(tabSlideSpec) { -it / 4 })
-                            } else {
-                                (fadeIn(tabFadeSpec) + slideInHorizontally(tabSlideSpec) { -it / 4 })
-                                    .togetherWith(fadeOut(tabFadeSpec) + slideOutHorizontally(tabSlideSpec) { it / 4 })
-                            }
-                        },
+                        animationSpec = tween(110),
                         label = "mainTab"
                     ) { tab ->
                         saveableStateHolder.SaveableStateProvider(tab) {

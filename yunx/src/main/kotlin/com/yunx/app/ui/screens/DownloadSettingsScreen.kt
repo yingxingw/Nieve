@@ -349,55 +349,35 @@ fun DownloadSettingsScreen(
     // 最大同时下载任务数
     if (showConcurrencyDialog) {
         val options = listOf(1, 2, 3, 5, 8)
-        AlertDialog(
+        com.yunx.app.shell.NieveGlassDialog(
             onDismissRequest = { showConcurrencyDialog = false },
-            title = { Text(stringResource(R.string.dialog_max_tasks_title)) },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 420.dp)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    options.forEach { v ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = maxConcurrent == v,
-                                onClick = {
-                                    maxConcurrent = v
-                                    settingsRepo.maxConcurrentDownloads = v
-                                    showConcurrencyDialog = false
-                                    // 引擎自己不读这个设置，只在启动时同步一次，所以这里立刻补一次下发
-                                    scope.launch {
-                                        val applied = runCatching {
-                                            withContext(Dispatchers.IO) { GopeedEngine.applyMaxRunning(context) }
-                                        }.getOrNull()
-                                        if (applied == null &&
-                                            GopeedEngine.state.value == GopeedEngine.State.RUNNING
-                                        ) {
-                                            SnackbarController.show(AppStrings.get(R.string.dl_engine_concurrency_apply_failed))
-                                        }
-                                    }
-                                }
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(R.string.option_max_tasks, v),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
+            title = stringResource(R.string.dialog_max_tasks_title),
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { showConcurrencyDialog = false }
+        ) {
+            options.forEach { v ->
+                com.yunx.app.shell.NieveDialogOption(
+                    text = stringResource(R.string.option_max_tasks, v),
+                    selected = maxConcurrent == v,
+                    onClick = {
+                        maxConcurrent = v
+                        settingsRepo.maxConcurrentDownloads = v
+                        showConcurrencyDialog = false
+                        // 引擎自己不读这个设置，只在启动时同步一次，所以这里立刻补一次下发
+                        scope.launch {
+                            val applied = runCatching {
+                                withContext(Dispatchers.IO) { GopeedEngine.applyMaxRunning(context) }
+                            }.getOrNull()
+                            if (applied == null &&
+                                GopeedEngine.state.value == GopeedEngine.State.RUNNING
+                            ) {
+                                SnackbarController.show(AppStrings.get(R.string.dl_engine_concurrency_apply_failed))
+                            }
                         }
                     }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showConcurrencyDialog = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
+                )
             }
-        )
+        }
     }
 
     // 下载速度限制：预设档位 + 自定义（KB/s）
@@ -415,163 +395,111 @@ fun DownloadSettingsScreen(
             tempSelected == null -> speedLimitBps > 0 && speedLimitBps !in presets
             else -> false
         }
-        AlertDialog(
+        com.yunx.app.shell.NieveGlassDialog(
             onDismissRequest = { showSpeedDialog = false },
-            title = { Text(stringResource(R.string.dialog_speed_limit_title)) },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 420.dp)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    presets.forEach { v ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = !isCustom && effective == v,
-                                onClick = { tempSelected = v }
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = if (v == 0L) stringResource(R.string.option_speed_unlimited)
-                                else formatSpeed(v),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
+            title = stringResource(R.string.dialog_speed_limit_title),
+            confirmText = stringResource(R.string.action_confirm),
+            onConfirm = {
+                if (isCustom) {
+                    val kb = customKb.toLongOrNull()?.coerceAtLeast(1L)
+                    if (kb != null) {
+                        speedLimitBps = kb * 1024
+                        settingsRepo.downloadSpeedLimit = kb * 1024
                     }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = isCustom,
-                            onClick = {
-                                tempSelected = -1L
-                                if (speedLimitBps > 0 && speedLimitBps !in presets && customKb.isBlank()) {
-                                    customKb = (speedLimitBps / 1024).toString()
-                                }
-                            }
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        OutlinedTextField(
-                            value = customKb,
-                            onValueChange = {
-                                customKb = it.filter(Char::isDigit).take(6)
-                                tempSelected = -1L
-                            },
-                            modifier = Modifier.weight(1f),
-                            label = { Text(stringResource(R.string.option_custom_kb)) },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true
-                        )
-                    }
+                } else if (tempSelected != null) {
+                    val v = tempSelected ?: speedLimitBps
+                    speedLimitBps = v
+                    settingsRepo.downloadSpeedLimit = v
                 }
+                showSpeedDialog = false
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (isCustom) {
-                            val kb = customKb.toLongOrNull()?.coerceAtLeast(1L)
-                            if (kb != null) {
-                                speedLimitBps = kb * 1024
-                                settingsRepo.downloadSpeedLimit = kb * 1024
-                            }
-                        } else if (tempSelected != null) {
-                            val v = tempSelected ?: speedLimitBps
-                            speedLimitBps = v
-                            settingsRepo.downloadSpeedLimit = v
-                        }
-                        showSpeedDialog = false
-                    }
-                ) { Text(stringResource(R.string.action_confirm)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showSpeedDialog = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { showSpeedDialog = false }
+        ) {
+            presets.forEach { v ->
+                com.yunx.app.shell.NieveDialogOption(
+                    text = if (v == 0L) stringResource(R.string.option_speed_unlimited)
+                    else formatSpeed(v),
+                    selected = !isCustom && effective == v,
+                    onClick = { tempSelected = v }
+                )
             }
-        )
+            Spacer(Modifier.height(6.dp))
+            com.yunx.app.shell.NieveDialogOption(
+                text = stringResource(R.string.option_custom_kb),
+                selected = isCustom,
+                onClick = {
+                    tempSelected = -1L
+                    if (speedLimitBps > 0 && speedLimitBps !in presets && customKb.isBlank()) {
+                        customKb = (speedLimitBps / 1024).toString()
+                    }
+                }
+            )
+            OutlinedTextField(
+                value = customKb,
+                onValueChange = {
+                    customKb = it.filter(Char::isDigit).take(6)
+                    tempSelected = -1L
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp),
+                label = { Text(stringResource(R.string.option_custom_kb)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true
+            )
+        }
     }
 
     // 失败自动重试次数
     if (showRetryDialog) {
         val options = listOf(0, 1, 2, 3, 5, 8, 10)
-        AlertDialog(
+        com.yunx.app.shell.NieveGlassDialog(
             onDismissRequest = { showRetryDialog = false },
-            title = { Text(stringResource(R.string.dialog_auto_retry_title)) },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 420.dp)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    options.forEach { v ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = retryCount == v,
-                                onClick = {
-                                    retryCount = v
-                                    settingsRepo.downloadRetryCount = v
-                                    showRetryDialog = false
-                                }
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = if (v == 0) stringResource(R.string.option_retry_never)
-                                else stringResource(R.string.option_retry_times, v),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
+            title = stringResource(R.string.dialog_auto_retry_title),
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { showRetryDialog = false }
+        ) {
+            options.forEach { v ->
+                com.yunx.app.shell.NieveDialogOption(
+                    text = if (v == 0) stringResource(R.string.option_retry_never)
+                    else stringResource(R.string.option_retry_times, v),
+                    selected = retryCount == v,
+                    onClick = {
+                        retryCount = v
+                        settingsRepo.downloadRetryCount = v
+                        showRetryDialog = false
                     }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showRetryDialog = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
+                )
             }
-        )
+        }
     }
 
     // 锁屏保持下载：引导加入「忽略电池优化」白名单
     if (showBatteryDialog) {
-        AlertDialog(
+        com.yunx.app.shell.NieveGlassDialog(
             onDismissRequest = { showBatteryDialog = false },
-            title = { Text(stringResource(R.string.dialog_battery_title)) },
-            text = {
-                Text(
-                    text = stringResource(R.string.dialog_battery_message),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showBatteryDialog = false
-                        runCatching {
-                            context.startActivity(
-                                Intent(
-                                    Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                                    Uri.parse("package:${context.packageName}")
-                                )
-                            )
-                        }
-                    }
-                ) { Text(stringResource(R.string.action_go_settings)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showBatteryDialog = false }) {
-                    Text(stringResource(R.string.action_not_now))
+            title = stringResource(R.string.dialog_battery_title),
+            confirmText = stringResource(R.string.action_go_settings),
+            onConfirm = {
+                showBatteryDialog = false
+                runCatching {
+                    context.startActivity(
+                        Intent(
+                            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                            Uri.parse("package:${context.packageName}")
+                        )
+                    )
                 }
-            }
-        )
+            },
+            dismissText = stringResource(R.string.action_not_now),
+            onDismiss = { showBatteryDialog = false }
+        ) {
+            Text(
+                text = stringResource(R.string.dialog_battery_message),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }

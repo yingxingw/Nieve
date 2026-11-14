@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -37,6 +38,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Error
 import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material.icons.rounded.Search
@@ -366,6 +368,12 @@ private fun SkipSettingsPage(
     val scope = rememberCoroutineScope()
 
     var showConfigDialog by remember { mutableStateOf(false) }
+    var showSubscriptionDialog by remember { mutableStateOf(false) }
+    val customConfigKey = context.getString(com.android.skip.R.string.store_custom_config)
+    val defaultConfigUrl = context.getString(com.android.skip.R.string.store_default_config)
+    var subscriptionUrl by remember {
+        mutableStateOf(DataStoreUtils.getSyncData(customConfigKey, ""))
+    }
     var configText by remember {
         mutableStateOf(
             DataStoreUtils.getSyncData(
@@ -434,6 +442,26 @@ private fun SkipSettingsPage(
                             Toast.LENGTH_SHORT
                         ).show()
                     }
+                },
+            )
+            ArrowPreference(
+                title = "在线订阅",
+                summary = if (subscriptionUrl.isBlank()) {
+                    "内置订阅：$defaultConfigUrl"
+                } else {
+                    subscriptionUrl
+                },
+                startAction = {
+                    Icon(
+                        Icons.Rounded.CloudDownload,
+                        contentDescription = null,
+                        tint = MiuixTheme.colorScheme.onBackground,
+                        modifier = Modifier.padding(end = 6.dp),
+                    )
+                },
+                onClick = {
+                    subscriptionUrl = DataStoreUtils.getSyncData(customConfigKey, "")
+                    showSubscriptionDialog = true
                 },
             )
             ArrowPreference(
@@ -533,6 +561,106 @@ private fun SkipSettingsPage(
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.textButtonColorsPrimary(),
                     )
+                }
+            }
+        }
+    }
+
+    if (showSubscriptionDialog) {
+        WindowDialog(
+            show = true,
+            title = "在线订阅",
+            summary = "填入远程 YAML / JSON 规则地址，保存后会立即拉取并按 12 小时周期同步",
+            onDismissRequest = { showSubscriptionDialog = false },
+        ) {
+            Column {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 56.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MiuixTheme.colorScheme.secondaryVariant)
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    if (subscriptionUrl.isEmpty()) {
+                        Text(
+                            text = defaultConfigUrl,
+                            fontSize = 13.sp,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        )
+                    }
+                    BasicTextField(
+                        value = subscriptionUrl,
+                        onValueChange = { subscriptionUrl = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        textStyle = TextStyle(
+                            color = MiuixTheme.colorScheme.onBackground,
+                            fontSize = 14.sp,
+                        ),
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "留空并保存可恢复内置默认规则源；订阅规则会覆盖本地自定义文本。",
+                    fontSize = 12.sp,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextButton(
+                        text = "清除订阅",
+                        onClick = {
+                            DataStoreUtils.removeSync(customConfigKey)
+                            subscriptionUrl = ""
+                            configViewModel.readConfig()
+                            showSubscriptionDialog = false
+                            Toast.makeText(context, "已恢复默认规则源", Toast.LENGTH_SHORT).show()
+                        },
+                    )
+                    Row {
+                        TextButton(
+                            text = "取消",
+                            onClick = { showSubscriptionDialog = false },
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        TextButton(
+                            text = "保存并同步",
+                            onClick = {
+                                val url = subscriptionUrl.trim()
+                                if (url.isNotBlank() &&
+                                    !url.startsWith("http://") &&
+                                    !url.startsWith("https://")
+                                ) {
+                                    Toast.makeText(
+                                        context,
+                                        "请输入 http(s) 规则地址",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                } else {
+                                    if (url.isBlank()) {
+                                        DataStoreUtils.removeSync(customConfigKey)
+                                    } else {
+                                        DataStoreUtils.putSyncData(customConfigKey, url)
+                                    }
+                                    configViewModel.readConfig()
+                                    showSubscriptionDialog = false
+                                    Toast.makeText(
+                                        context,
+                                        "订阅已保存，正在同步规则",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            },
+                            colors = ButtonDefaults.textButtonColorsPrimary(),
+                        )
+                    }
                 }
             }
         }

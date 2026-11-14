@@ -81,6 +81,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.yunx.app.R
+import com.yunx.app.shell.NieveErrorDialog
 import com.yunx.app.data.network.Pan123Constants
 import com.yunx.app.ui.SnackbarController
 import com.yunx.app.ui.components.YunXWavyLoading
@@ -294,6 +295,14 @@ fun Pan123LoginScreen(
                 )
             }
         }
+    }
+
+    loginError?.let { message ->
+        NieveErrorDialog(
+            title = "登录失败",
+            message = message,
+            onDismiss = { loginError = null },
+        )
     }
 
     // 登录教程弹窗（网页登录的说明；账号密码模式用不到）

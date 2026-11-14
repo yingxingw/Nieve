@@ -187,7 +187,7 @@ private fun VideoPlatformCardContent(
             contentDescription = null,
             modifier = Modifier
                 .size(40.dp)
-                .alpha(if (platform.needsLogin && account == null) 0.85f else 1f),
+                .alpha(if (platform.needsLogin && account == null) 0.92f else 1f),
             contentScale = ContentScale.Fit
         )
 

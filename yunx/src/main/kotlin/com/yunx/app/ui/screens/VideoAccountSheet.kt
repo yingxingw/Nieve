@@ -101,15 +101,10 @@ internal fun VideoAccountSheet(
     val snackbarHostState = rememberGlobalSnackbarHostState()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface
-    ) {
+    NieveAccountSheet(onDismiss = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 24.dp, end = 24.dp, top = 4.dp, bottom = 32.dp)
         ) {
             // 头部：平台 Logo + 平台名 + 登录态
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -155,13 +150,7 @@ internal fun VideoAccountSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                )
-            ) {
+            NieveAccountInfoCard {
                 Column {
                     accounts.forEachIndexed { index, account ->
                         if (index > 0) HorizontalDivider()

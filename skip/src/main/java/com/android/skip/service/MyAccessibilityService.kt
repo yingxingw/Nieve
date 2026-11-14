@@ -96,7 +96,7 @@ class MyAccessibilityService : AccessibilityService() {
                 appPackageName = rootNodePackageName
             }
 
-            if (!whiteListRepository.isAppInWhiteList(rootNodePackageName) && (isStrict || scanTimes < 50)) {
+            if (!whiteListRepository.isAppInWhiteList(rootNodePackageName) && (isStrict || scanTimes < 200)) {
                 val that = this
                 serviceScope.launch {
                     val targetRect =

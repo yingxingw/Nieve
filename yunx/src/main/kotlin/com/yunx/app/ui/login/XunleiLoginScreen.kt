@@ -48,6 +48,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.yunx.app.R
+import com.yunx.app.shell.NieveErrorDialog
 import com.yunx.app.ui.viewmodel.XunleiAccountViewModel
 import kotlinx.coroutines.delay
 
@@ -90,6 +91,7 @@ fun XunleiLoginScreen(
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
     var smsMobile by rememberSaveable { mutableStateOf("") }
     var smsCode by rememberSaveable { mutableStateOf("") }
+    var loginErrorDialog by remember { mutableStateOf<String?>(null) }
 
     // 重发倒计时：ViewModel 记的是「冷却截止时刻」（只有真的发出去才开始算），这里只负责每秒刷新显示
     var resendCooldown by remember { mutableIntStateOf(0) }
@@ -107,12 +109,15 @@ fun XunleiLoginScreen(
     // 早已失效，直接渲染成验证步骤只会让用户提交必然失败的验证码
     LaunchedEffect(Unit) { viewModel.resetLoginStep() }
 
-    // 登录错误提示
+    // 登录错误提示：居中玻璃弹窗，避免被底部导航栏遮挡
     LaunchedEffect(error) {
         error?.let {
-            SnackbarController.show(it)
+            loginErrorDialog = it
             viewModel.consumeLoginError()
         }
+    }
+    loginErrorDialog?.let { message ->
+        NieveErrorDialog(message = message, onDismiss = { loginErrorDialog = null })
     }
     // 登录成功后自动关闭登录页（短信/密码/网页任一方式成功都会置位该标记）
     LaunchedEffect(loginSucceeded) {

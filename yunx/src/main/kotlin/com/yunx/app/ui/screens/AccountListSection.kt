@@ -21,6 +21,8 @@ package com.yunx.app.ui.screens
 import androidx.compose.ui.res.stringResource
 import com.yunx.app.R
 import com.yunx.app.util.AppStrings
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -89,16 +91,17 @@ internal fun AccountListSection(
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
     Spacer(modifier = Modifier.height(8.dp))
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
+    val listShape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp)
+    androidx.compose.foundation.layout.Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(com.yunx.app.shell.nieveGlassFill(), listShape)
+            .background(com.yunx.app.shell.nieveGlassHighlight(), listShape)
+            .border(1.dp, com.yunx.app.shell.nieveGlassBorder(), listShape)
     ) {
         Column {
             accounts.forEachIndexed { index, account ->
-                if (index > 0) HorizontalDivider()
+                if (index > 0) HorizontalDivider(color = com.yunx.app.shell.nieveGlassBorder())
                 AccountRow(
                     account = account,
                     onSetPrimary = onSetPrimary,
@@ -106,7 +109,7 @@ internal fun AccountListSection(
                     onRemove = onRemove
                 )
             }
-            HorizontalDivider()
+            HorizontalDivider(color = com.yunx.app.shell.nieveGlassBorder())
             // 添加账号：复用该平台原来的登录入口（网页登录 / 账号密码登录），只是落成新的一行
             Row(
                 modifier = Modifier

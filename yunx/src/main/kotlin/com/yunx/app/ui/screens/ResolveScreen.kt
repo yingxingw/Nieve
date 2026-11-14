@@ -524,41 +524,33 @@ private fun ResolveInputContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 剪贴板提示卡：作为正常排版的一块放在输入面板上方，不再绝对定位悬浮覆盖输入框
-        var shownSuggestion by remember { mutableStateOf<String?>(null) }
-        LaunchedEffect(clipboardSuggestion) {
-            clipboardSuggestion?.let { shownSuggestion = it }
-        }
-        AnimatedVisibility(
-            visible = state is ResolveUiState.Idle && clipboardSuggestion != null,
-            enter = fadeIn(effectsDefault()),
-            exit = fadeOut(effectsFast())
-        ) {
-            shownSuggestion?.let { suggestion ->
-                val shareParsed = ShareLinkParser.parse(suggestion)
-                val c139Parsed = C139KoulingParser.parse(suggestion)
-                val githubParsed = GitHubLinkParser.parse(suggestion)
-                val videoParsed = VideoLinkParser.parse(suggestion)
-                val platformName = when {
-                    videoParsed != null -> videoParsed.platform.displayName
-                    githubParsed != null -> "GitHub"
-                    shareParsed != null -> shareParsed.platform.displayName
-                    c139Parsed != null -> SharePlatform.C139.displayName
-                    else -> stringResource(R.string.rs_platform_generic)
-                }
-                val platformLogo = when {
-                    videoParsed != null -> videoParsed.platform.logoRes()
-                    githubParsed != null -> SharePlatform.GITHUB.logoRes()
-                    shareParsed != null -> shareParsed.platform.logoRes()
-                    c139Parsed != null -> SharePlatform.C139.logoRes()
-                    else -> null
-                }
-                ClipboardSuggestCard(
-                    platformName = platformName,
-                    platformLogo = platformLogo,
-                    onPaste = { onClipboardPaste(suggestion) },
-                    onDismiss = { onClipboardDismiss(suggestion) }
-                )
+        // 剪贴板提示卡：严格参与 Column 排版，检测到就直接占位，避免动画期间盖住输入框
+        if (state is ResolveUiState.Idle && clipboardSuggestion != null) {
+            clipboardSuggestion?.let { suggestion ->
+            val shareParsed = ShareLinkParser.parse(suggestion)
+            val c139Parsed = C139KoulingParser.parse(suggestion)
+            val githubParsed = GitHubLinkParser.parse(suggestion)
+            val videoParsed = VideoLinkParser.parse(suggestion)
+            val platformName = when {
+                videoParsed != null -> videoParsed.platform.displayName
+                githubParsed != null -> "GitHub"
+                shareParsed != null -> shareParsed.platform.displayName
+                c139Parsed != null -> SharePlatform.C139.displayName
+                else -> stringResource(R.string.rs_platform_generic)
+            }
+            val platformLogo = when {
+                videoParsed != null -> videoParsed.platform.logoRes()
+                githubParsed != null -> SharePlatform.GITHUB.logoRes()
+                shareParsed != null -> shareParsed.platform.logoRes()
+                c139Parsed != null -> SharePlatform.C139.logoRes()
+                else -> null
+            }
+            ClipboardSuggestCard(
+                platformName = platformName,
+                platformLogo = platformLogo,
+                onPaste = { onClipboardPaste(suggestion) },
+                onDismiss = { onClipboardDismiss(suggestion) }
+            )
             }
         }
 

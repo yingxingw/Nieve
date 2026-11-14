@@ -18,17 +18,11 @@
 
 package com.yunx.app.ui.screens
 
-import androidx.compose.ui.res.stringResource
-import com.yunx.app.R
-
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.yunx.app.data.db.MultiAccountEntity
 import com.yunx.app.data.db.XunleiAccountEntity
@@ -37,9 +31,8 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * 已登录迅雷账号的底部弹窗：昵称、设备号、登录时间 + 退出登录（二次确认）。
+ * 已登录迅雷账号详情：统一的液态玻璃弹层 + 账号概览 + 登录凭据 + 多账号管理。
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun XunleiAccountSheet(
     account: XunleiAccountEntity,
@@ -53,73 +46,48 @@ fun XunleiAccountSheet(
     val loginTime = remember(account.updatedAt) {
         SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(account.updatedAt))
     }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val displayName = account.remark.ifBlank { account.nickname }.ifBlank { "迅雷账号" }
+    val authLabel = if (account.authType.isBlank()) "App 授权" else "网页授权"
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = MaterialTheme.colorScheme.surface) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 24.dp, end = 24.dp, top = 4.dp, bottom = 32.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(modifier = Modifier.size(52.dp), shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            account.nickname.take(1),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(account.nickname, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(8.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(stringResource(R.string.sh_xunlei_logged_in), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(stringResource(R.string.sh_login_info), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(8.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    InfoRow(label = stringResource(R.string.sh_login_time), value = loginTime)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    InfoRow(label = stringResource(R.string.sh_device_id), value = account.deviceId.ifBlank { "-" })
-                }
-            }
-            Spacer(modifier = Modifier.height(24.dp))
-            // 多账号：同一网盘可以同时登录多个账号，这里管理它们（主账号 / 备注 / 退出 / 添加）
-            AccountListSection(
-                accounts = accounts,
-                onSetPrimary = onSetPrimary,
-                onRename = onRename,
-                onRemove = onRemove,
-                onAddAccount = onAddAccount,
-                onEmpty = onDismiss
-            )
+    NieveAccountSheet(onDismiss = onDismiss) {
+        NieveAccountHeader(
+            nickname = displayName,
+            platformLabel = "迅雷云盘 · 已登录",
+            badge = if (account.isPrimary) "主账号" else null,
+        )
+        Spacer(Modifier.height(18.dp))
+        NieveAccountSectionTitle("账号信息")
+        NieveAccountInfoCard {
+            NieveAccountInfoRow("登录时间", loginTime)
+            Spacer(Modifier.height(10.dp))
+            NieveAccountInfoRow("授权方式", authLabel)
+            Spacer(Modifier.height(10.dp))
+            NieveAccountInfoRow("设备 ID", account.deviceId.ifBlank { "-" }, monospace = true)
+            Spacer(Modifier.height(10.dp))
+            NieveAccountInfoRow("账号标识", account.id, monospace = true)
         }
+        Spacer(Modifier.height(18.dp))
+        NieveAccountSectionTitle("登录凭据", trailing = "脱敏展示")
+        NieveAccountInfoCard {
+            NieveAccountInfoRow("Access", maskToken(account.accessToken), monospace = true)
+            Spacer(Modifier.height(10.dp))
+            NieveAccountInfoRow("Refresh", maskToken(account.refreshToken), monospace = true)
+        }
+        Spacer(Modifier.height(22.dp))
+        AccountListSection(
+            accounts = accounts,
+            onSetPrimary = onSetPrimary,
+            onRename = onRename,
+            onRemove = onRemove,
+            onAddAccount = onAddAccount,
+            onEmpty = onDismiss,
+        )
     }
 }
 
-@Composable
-private fun InfoRow(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(72.dp)
-        )
-        Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-    }
+/** Token 只展示首尾，避免详情页把完整凭据铺在屏幕上。 */
+private fun maskToken(raw: String): String {
+    if (raw.isBlank()) return "-"
+    if (raw.length <= 12) return raw.take(4) + "…"
+    return raw.take(6) + "…" + raw.takeLast(4)
 }

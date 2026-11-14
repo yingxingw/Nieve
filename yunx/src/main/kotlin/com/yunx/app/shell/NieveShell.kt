@@ -137,10 +137,11 @@ fun NieveShell(
                             .attachBarBlurBackdrop(blurBackdrop)
                     ) {
                         NieveAmbientBackground(dark = isNieveDark(settings.colorMode))
-                        Crossfade(
+                        NievePageTransition(
                             targetState = page,
-                            animationSpec = tween(120),
+                            modifier = Modifier.fillMaxSize(),
                             label = "shellPage",
+                            depth = { it.ordinal },
                         ) { current ->
                             when (current) {
                                 ShellTab.Home -> HomeHub(

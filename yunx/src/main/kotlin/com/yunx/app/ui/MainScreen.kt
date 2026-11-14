@@ -1412,8 +1412,9 @@ fun MainScreen(
                             SnackbarHost(
                                 hostState = snackbarHostState,
                                 modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .padding(bottom = 96.dp)
+                                    .align(Alignment.TopStart)
+                                    .statusBarsPadding()
+                                    .padding(start = 16.dp, top = 92.dp)
                             )
                         }
                     }
@@ -1448,10 +1449,13 @@ fun MainScreen(
                                     }
                                 }
                             }
-                            // 全局 Snackbar（横屏无底部栏，悬浮底部居中）
+                            // 全局 Snackbar：横屏无底部栏，也放到左上，避免被系统导航条挡住
                             SnackbarHost(
                                 hostState = snackbarHostState,
-                                modifier = Modifier.align(Alignment.BottomCenter)
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .statusBarsPadding()
+                                    .padding(start = 16.dp, top = 92.dp)
                             )
                         }
                     }
@@ -1459,7 +1463,6 @@ fun MainScreen(
                     // 竖屏：Scaffold + 底部导航栏
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
-                        snackbarHost = { SnackbarHost(snackbarHostState) },
                         topBar = { topBarContent() },
                         bottomBar = {
                             MainBottomBar(
@@ -1474,6 +1477,13 @@ fun MainScreen(
                                 .padding(innerPadding)
                         ) {
                             tabContent()
+                            // 通知改到内容区左上角，避开底部导航栏与系统手势条
+                            SnackbarHost(
+                                hostState = snackbarHostState,
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .padding(start = 12.dp, top = 8.dp)
+                            )
                         }
                     }
                 }

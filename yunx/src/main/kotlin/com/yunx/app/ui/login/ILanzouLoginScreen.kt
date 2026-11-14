@@ -68,6 +68,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.yunx.app.R
+import com.yunx.app.shell.NieveErrorDialog
 import com.yunx.app.ui.SnackbarController
 import com.yunx.app.ui.rememberGlobalSnackbarHostState
 import com.yunx.app.ui.viewmodel.ILanzouAccountViewModel
@@ -206,6 +207,14 @@ fun ILanzouLoginScreen(
                 }
             }
         }
+    }
+
+    error?.let { message ->
+        NieveErrorDialog(
+            title = "登录失败",
+            message = message,
+            onDismiss = { error = null },
+        )
     }
 
     if (showTutorial) {

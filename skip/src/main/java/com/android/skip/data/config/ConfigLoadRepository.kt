@@ -30,34 +30,99 @@ class ConfigLoadRepository @Inject constructor() {
         rootNode: AccessibilityNodeInfo, activityName: String?, isStrict: Boolean?
     ): Rect? {
         val targetAppPackage = rootNode.packageName.toString()
-        var targetConfig = configLoadSchemaMap[targetAppPackage]
-
-        if (isStrict != true) {
-            val defaultSkipTexts = listOf(
-                LoadSkipText(text = getString(R.string.settings_strict_skip))
-            )
-            if (targetConfig == null) {
-                targetConfig = ConfigLoadSchema(targetAppPackage, defaultSkipTexts)
-            } else if (targetConfig.skipTexts == null) {
-                targetConfig.skipTexts = defaultSkipTexts
-            }
-        }
+        val targetConfig = configLoadSchemaMap[targetAppPackage]
 
         return withContext(Dispatchers.Main) {
             try {
-                val skipByTextTasks =
-                    createSkipByTextTasks(this, rootNode, targetConfig?.skipTexts, activityName)
+                val configuredTexts = targetConfig?.skipTexts.orEmpty()
+                val configuredTasks =
+                    createSkipByTextTasks(this, rootNode, configuredTexts, activityName)
+                // 内置兜底规则：云端配置缺失/过期时也能识别「跳过 / 我知道了 / 关闭」这类按钮。
+                // 严格模式仍只用用户配置，避免误点。
+                val builtinTasks = if (isStrict != true) {
+                    createBuiltinSkipTasks(this, rootNode, activityName)
+                } else {
+                    emptyList()
+                }
                 val skipByIdTasks =
                     createSkipByIdTasks(this, rootNode, targetConfig?.skipIds, activityName)
                 val skipByBoundTasks =
                     createSkipByBoundTasks(this, rootNode, targetConfig?.skipBounds, activityName)
-                val tasks = skipByTextTasks + skipByIdTasks + skipByBoundTasks
+                val tasks = configuredTasks + builtinTasks + skipByIdTasks + skipByBoundTasks
                 awaitFirstNonNullOrComplete(this, tasks)
             } catch (e: Exception) {
                 LogUtils.e(e)
                 null
             }
         }
+    }
+
+    /**
+     * 内置按钮文案。云端规则没命中时这些仍然生效；带「同意」的低置信按钮只在
+     * 开屏/广告类 Activity 中匹配，避免在隐私协议里替用户点同意。
+     */
+    private fun builtinKeywords(activityName: String?): List<String> {
+        val base = listOf(
+            "跳过", "跳过广告", "跳过此广告", "跳过开屏广告", "点击跳过",
+            "关闭广告", "关闭", "我知道了", "知道了", "以后再说", "下次再说", "暂不",
+        )
+        val adLikeActivity = activityName?.lowercase()?.let { name ->
+            name.contains("splash") || name.contains("launch") ||
+                name.contains("advert") || name.contains("adactivity")
+        } == true
+        return if (adLikeActivity) base + "同意" else base
+    }
+
+    private fun createBuiltinSkipTasks(
+        scope: CoroutineScope,
+        rootNode: AccessibilityNodeInfo,
+        activityName: String?
+    ): List<Deferred<Rect?>> {
+        val keywords = builtinKeywords(activityName)
+        return listOf(scope.async {
+            val node = findMatchingNode(rootNode, keywords) ?: return@async null
+            val target = clickableAncestor(node) ?: node
+            val rect = Rect()
+            target.getBoundsInScreen(rect)
+            rect.takeIf { !it.isEmpty }
+        })
+    }
+
+    /** BFS 遍历一次，同时比对 text 与 contentDescription；优先返回可点击节点。 */
+    private fun findMatchingNode(
+        rootNode: AccessibilityNodeInfo,
+        keywords: List<String>
+    ): AccessibilityNodeInfo? {
+        val queue = ArrayDeque<AccessibilityNodeInfo>()
+        queue.add(rootNode)
+        var fallback: AccessibilityNodeInfo? = null
+        var guard = 0
+        while (queue.isNotEmpty() && guard++ < 4000) {
+            val node = queue.removeFirst()
+            val text = (
+                node.text?.toString().orEmpty() + " " +
+                    node.contentDescription?.toString().orEmpty()
+                ).replace(" ", "")
+            if (keywords.any { text.contains(it.replace(" ", "")) }) {
+                if (node.isClickable) return node
+                if (fallback == null) fallback = node
+            }
+            for (i in 0 until node.childCount) {
+                node.getChild(i)?.let { queue.add(it) }
+            }
+        }
+        return fallback?.let { clickableAncestor(it) ?: it }
+    }
+
+    /** 文本节点通常不可点击，向上找最多 4 层可点击父容器。 */
+    private fun clickableAncestor(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        var current: AccessibilityNodeInfo? = node
+        repeat(4) {
+            val parent = current?.parent ?: return null
+            if (parent.isClickable) return parent
+            current = parent
+        }
+        return null
     }
 
     private suspend fun <T> awaitFirstNonNullOrComplete(

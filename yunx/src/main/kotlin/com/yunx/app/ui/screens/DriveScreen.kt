@@ -1000,7 +1000,7 @@ private fun DriveAccountCardContent(
                 contentDescription = null,
                 modifier = Modifier
                     .size(40.dp)
-                    .alpha(if (account.isLoggedIn) 1f else 0.85f),
+                    .alpha(if (account.isLoggedIn) 1f else 0.88f),
                 contentScale = ContentScale.Fit
             )
         } else {
@@ -1274,4 +1274,11 @@ private fun DriveSortDialog(
             }
         }
     }
+}
+
+/** 账号昵称脱敏：保留首尾各 2 个字符，中间用省略号代替。 */
+private fun maskAccount(raw: String): String {
+    val value = raw.trim()
+    if (value.length <= 4) return value
+    return value.take(2) + "…" + value.takeLast(2)
 }

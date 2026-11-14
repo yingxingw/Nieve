@@ -314,17 +314,17 @@ fun NieveDeveloperScreen(onBack: () -> Unit) {
                     Icon(Icons.Rounded.Person, modifier = Modifier.padding(end = 6.dp), contentDescription = null)
                 },
                 onClick = {
-                    openUrl(context, "https://www.coolapk.com")
+                    openUrl(context, "https://www.coolapk.com/u/39153771")
                 },
             )
             ArrowPreference(
-                title = "GitHub",
-                summary = "github.com/yingxingw",
+                title = "开源仓库",
+                summary = "github.com/yingxingw/Nieve",
                 startAction = {
                     Icon(Icons.Rounded.Code, modifier = Modifier.padding(end = 6.dp), contentDescription = null)
                 },
                 onClick = {
-                    openUrl(context, "https://github.com/yingxingw")
+                    openUrl(context, "https://github.com/yingxingw/Nieve")
                 },
             )
         }

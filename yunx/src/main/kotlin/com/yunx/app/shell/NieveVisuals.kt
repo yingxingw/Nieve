@@ -2,6 +2,8 @@ package com.yunx.app.shell
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -12,6 +14,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -194,14 +197,22 @@ fun isNieveDark(colorMode: Int): Boolean = when (colorMode) {
 @Composable
 fun nieveGlassFill(): Color {
     val light = MaterialTheme.colorScheme.surface.luminance() > 0.5f
-    return if (light) Color.White.copy(alpha = 0.62f) else Color.White.copy(alpha = 0.07f)
+    return if (light) {
+        Color(0xFFF2F8FF).copy(alpha = 0.72f)
+    } else {
+        Color(0xFFBBD6F2).copy(alpha = 0.09f)
+    }
 }
 
 /** 玻璃边缘描边：浅色用低透明黑，深色用低透明白，保证卡片轮廓清楚。 */
 @Composable
 fun nieveGlassBorder(): Color {
     val light = MaterialTheme.colorScheme.surface.luminance() > 0.5f
-    return if (light) Color(0xFF101014).copy(alpha = 0.10f) else Color.White.copy(alpha = 0.14f)
+    return if (light) {
+        Color(0xFF8FB8D8).copy(alpha = 0.42f)
+    } else {
+        Color(0xFF9CC8EE).copy(alpha = 0.22f)
+    }
 }
 
 /** 玻璃顶部高光：叠一层自上而下的白色渐变，模拟折射亮边。 */
@@ -261,6 +272,7 @@ fun <T> NievePageTransition(
         modifier = modifier,
         transitionSpec = {
             val forward = depth(targetState) >= depth(initialState)
+            val deepForward = forward && depth(targetState) >= 2
             val enterSlide = spring<IntOffset>(
                 dampingRatio = 0.84f,
                 stiffness = Spring.StiffnessMediumLow
@@ -270,13 +282,23 @@ fun <T> NievePageTransition(
                 stiffness = Spring.StiffnessMediumLow
             )
             (
-                fadeIn(tween(190)) +
+                fadeIn(tween(220)) +
                     slideInHorizontally(enterSlide) { if (forward) it / 3 else -it / 3 } +
-                    scaleIn(initialScale = 0.94f, animationSpec = enterScale)
+                    (if (deepForward) {
+                        slideInVertically(enterSlide) { -it / 4 }
+                    } else {
+                        EnterTransition.None
+                    }) +
+                    scaleIn(initialScale = 0.92f, animationSpec = enterScale)
                 ).togetherWith(
-                fadeOut(tween(130)) +
-                    slideOutHorizontally(tween(210)) { if (forward) -it / 6 else it / 6 } +
-                    scaleOut(targetScale = 0.97f, animationSpec = tween(210))
+                fadeOut(tween(150)) +
+                    slideOutHorizontally(tween(230)) { if (forward) -it / 6 else it / 6 } +
+                    (if (deepForward) {
+                        slideOutVertically(tween(230)) { it / 8 }
+                    } else {
+                        ExitTransition.None
+                    }) +
+                    scaleOut(targetScale = 0.95f, animationSpec = tween(230))
             )
         },
         label = label
@@ -397,6 +419,27 @@ fun NieveGlassDialog(
             }
         }
         }
+    }
+}
+
+/** 居中错误弹窗：登录失败、校验失败等必须让用户看到的提示，避免被底栏/导航条遮挡。 */
+@Composable
+fun NieveErrorDialog(
+    message: String,
+    onDismiss: () -> Unit,
+    title: String = "登录失败",
+) {
+    NieveGlassDialog(
+        onDismissRequest = onDismiss,
+        title = title,
+        confirmText = "知道了",
+        onConfirm = onDismiss,
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

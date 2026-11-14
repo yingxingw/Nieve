@@ -1,11 +1,11 @@
 {
-  "versionCode": 313,
-  "versionName": "3.1.3",
+  "versionCode": 312,
+  "versionName": "3.1.2",
   "minVersionCode": 0,
   "downloadUrl": "https://github.com/yingxingw/Nieve/raw/main/releases/Nieve-3.1.2.apk",
-  "changelog": "用于验证强制更新阻断页的临时配置。",
+  "changelog": "用于验证一键禁用阻断页的临时配置。",
   "updateDate": "2026-11-15",
-  "forceUpdate": true,
-  "disabled": false,
-  "disabledMessage": "Nieve 暂时停止使用，请等待后续版本。"
+  "forceUpdate": false,
+  "disabled": true,
+  "disabledMessage": "Nieve 正在维护，暂时停止使用。"
 }

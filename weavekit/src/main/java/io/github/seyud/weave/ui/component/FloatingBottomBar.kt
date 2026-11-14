@@ -270,18 +270,12 @@ fun FloatingBottomBar(
         ).also { holder.instance = it }
     }
 
-    // 唯一的状态来源：宿主的 selectedIndex。点击底栏时 selectedIndex 变化 →
-    // 这里的 pill 用同一个 damped spring 滑过去；拖动松手也只负责通知宿主。
-    // 注意：selectedIndex 每次重组都是新的 lambda，必须用 rememberUpdatedState
-    // 取最新实例，否则 snapshotFlow 会一直读首帧 lambda 捕获的旧值——
-    // 这正是“页面切了、圆块却不动”的根因。
-    val latestSelectedIndex by rememberUpdatedState(selectedIndex)
-    LaunchedEffect(Unit) {
-        snapshotFlow { latestSelectedIndex() }
-            .distinctUntilChanged()
-            .collectLatest { index ->
-                dampedDragAnimation.animateToValue(index.toFloat())
-            }
+    // 唯一的状态来源：宿主的 selectedIndex。点击底栏 / 外部跳页都会让宿主状态变化，
+    // 这里在组合期直接读取最新索引，再用 LaunchedEffect 驱动 pill 滑过去。
+    // 之前用 snapshotFlow 观察 lambda，个别页面切换路径下不会触发，导致「页面切了、圆块不动」。
+    val currentSelectedIndex = selectedIndex().coerceIn(0, tabsCount - 1)
+    LaunchedEffect(currentSelectedIndex) {
+        dampedDragAnimation.animateToValue(currentSelectedIndex.toFloat())
     }
 
     val interactiveHighlight = if (isLiquidGlassEnabled) {

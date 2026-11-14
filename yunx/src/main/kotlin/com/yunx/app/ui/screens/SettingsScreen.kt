@@ -473,6 +473,8 @@ fun SettingsScreen(
             onClick = onDownloadSettingsClick
         )
 
+        // 解析页内的设置只保留下载相关四项，其余（外观/语言/通用/备份/链接唤起/关于）全部移除。
+        if (false) {
         Spacer(modifier = Modifier.height(24.dp))
 
         SectionLabel(stringResource(R.string.section_appearance))
@@ -608,6 +610,7 @@ fun SettingsScreen(
             onClick = onAboutClick,
             onLongClick = { showDevMenu = true } // 长按打开隐藏开发调试菜单
         )
+        }
     }
 
     // Gopeed 下载目录手输弹窗：SAF 反解不到真实路径（第三方 provider / 选择器不可用）时的兜底。

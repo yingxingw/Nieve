@@ -34,7 +34,15 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -44,6 +52,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -56,6 +65,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.border
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -99,6 +109,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -937,18 +950,24 @@ private fun DownloadTaskCard(
     // 长按任务卡弹出操作菜单（复制直链 / 重新下载 / 删除）
     var showMenu by remember { mutableStateOf(false) }
 
-    Card(
+    val nieveCardShape = RoundedCornerShape(22.dp)
+    val glassTint = MaterialTheme.colorScheme.onSurface
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(MaterialTheme.shapes.large)
+            .shadow(6.dp, nieveCardShape, clip = false)
+            .clip(nieveCardShape)
+            .background(
+                Brush.verticalGradient(
+                    listOf(glassTint.copy(alpha = 0.075f), glassTint.copy(alpha = 0.02f))
+                ),
+                nieveCardShape
+            )
+            .border(1.dp, glassTint.copy(alpha = 0.12f), nieveCardShape)
             .combinedClickable(
                 onClick = {},
                 onLongClick = { showMenu = true }
-            ),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
+            )
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1063,15 +1082,11 @@ private fun DownloadTaskCard(
                             Spacer(modifier = Modifier.height(6.dp))
                         }
                     }
-                    YunXWavyProgress(
-                        progress = { fraction },
-                        modifier = Modifier.fillMaxWidth(),
-                        color = when (task.status) {
-                            DownloadTaskEntity.STATUS_FAILED -> MaterialTheme.colorScheme.error
-                            else -> MaterialTheme.colorScheme.primary
-                        },
-                        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        waving = task.status == DownloadTaskEntity.STATUS_DOWNLOADING
+                    NieveGlassProgress(
+                        progress = fraction,
+                        active = task.status == DownloadTaskEntity.STATUS_DOWNLOADING,
+                        failed = task.status == DownloadTaskEntity.STATUS_FAILED,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
@@ -1379,4 +1394,65 @@ private fun AddDownloadDialog(
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         }
     )
+}
+/** Nieve 玻璃进度条：冰蓝→青渐变 + 高光，下载中带轻微呼吸。 */
+@Composable
+private fun NieveGlassProgress(
+    progress: Float,
+    active: Boolean,
+    failed: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val shape = RoundedCornerShape(999.dp)
+    val animated by animateFloatAsState(
+        targetValue = progress.coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 420, easing = LinearEasing),
+        label = "nieveProgress"
+    )
+    val accent = MaterialTheme.colorScheme.primary
+    val cyan = Color(0xFF8FE9FF)
+    val errorColor = MaterialTheme.colorScheme.error
+    val transition = rememberInfiniteTransition(label = "nieveProgressGlow")
+    val glow by transition.animateFloat(
+        initialValue = 0.20f,
+        targetValue = 0.55f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1100, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "nieveProgressGlowAlpha"
+    )
+    Box(
+        modifier
+            .height(11.dp)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+            .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), shape)
+    ) {
+        if (animated > 0f) {
+            Box(
+                Modifier
+                    .fillMaxWidth(animated)
+                    .fillMaxHeight()
+                    .clip(shape)
+                    .background(
+                        Brush.horizontalGradient(
+                            if (failed) listOf(errorColor.copy(alpha = 0.75f), errorColor)
+                            else listOf(accent.copy(alpha = 0.80f), cyan, accent.copy(alpha = 0.95f))
+                        )
+                    )
+            )
+            Box(
+                Modifier
+                    .fillMaxWidth(animated)
+                    .fillMaxHeight()
+                    .clip(shape)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color.White.copy(alpha = if (active) glow else 0.22f), Color.Transparent)
+                        )
+                    )
+            )
+        }
+    }
 }

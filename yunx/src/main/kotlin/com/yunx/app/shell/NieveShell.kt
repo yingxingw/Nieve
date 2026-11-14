@@ -105,6 +105,10 @@ fun NieveShell(
                         setPage(ShellTab.YunX)
                     }
                 }
+                // 外部 intent 指定了解析页内某个 Tab（通知 / 快捷方式）时，直接落到解析页。
+                LaunchedEffect(yunxTab) {
+                    if (yunxTab != null) setPage(ShellTab.YunX)
+                }
                 BackHandler(enabled = page == ShellTab.YunX) {
                     setPage(ShellTab.Home)
                 }

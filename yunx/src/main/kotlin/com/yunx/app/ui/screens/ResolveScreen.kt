@@ -568,15 +568,15 @@ private fun ResolveInputContent(
                 .background(
                     brush = Brush.verticalGradient(
                         listOf(
-                            Color.White.copy(alpha = 0.07f),
-                            Color.White.copy(alpha = 0.025f),
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f),
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.025f),
                         )
                     ),
                     shape = panelShape,
                 )
                 .border(
                     width = 1.dp,
-                    color = Color.White.copy(alpha = 0.10f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
                     shape = panelShape,
                 )
                 .padding(14.dp),
@@ -589,10 +589,10 @@ private fun ResolveInputContent(
             )
 
             val glassFieldColors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color.White.copy(alpha = 0.06f),
-                unfocusedContainerColor = Color.White.copy(alpha = 0.035f),
+                focusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
+                unfocusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.03f),
                 focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.72f),
-                unfocusedBorderColor = Color.White.copy(alpha = 0.12f),
+                unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f),
                 cursorColor = MaterialTheme.colorScheme.primary,
             )
 
@@ -652,14 +652,14 @@ private fun ResolveInputContent(
                         } else {
                             Brush.horizontalGradient(
                                 listOf(
-                                    Color.White.copy(alpha = 0.10f),
-                                    Color.White.copy(alpha = 0.06f),
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f),
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
                                 )
                             )
                         },
                         shape = buttonShape,
                     )
-                    .border(1.dp, Color.White.copy(alpha = 0.18f), buttonShape)
+                    .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.20f), buttonShape)
             ) {
                 Button(
                     onClick = {

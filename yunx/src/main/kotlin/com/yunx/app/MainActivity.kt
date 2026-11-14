@@ -131,9 +131,15 @@ class MainActivity : ComponentActivity() {
         else -> null
     }
 
-    /** 实况通知（EXTRA_OPEN_TAB=download）→ 下载 Tab；其余情况不指定 Tab */
+    /** [EXTRA_OPEN_TAB] 指定打开哪个 Tab：download / resolve / drive / settings */
     private fun tabFromIntent(intent: Intent?): MainTab? =
-        if (intent?.getStringExtra(EXTRA_OPEN_TAB) == TAB_DOWNLOAD) MainTab.Download else null
+        when (intent?.getStringExtra(EXTRA_OPEN_TAB)) {
+            TAB_DOWNLOAD -> MainTab.Download
+            TAB_RESOLVE -> MainTab.Resolve
+            TAB_DRIVE -> MainTab.Drive
+            TAB_SETTINGS -> MainTab.Settings
+            else -> null
+        }
 
     companion object {
         /** 「点击后打开哪个 Tab」的 intent extra 键（由 DownloadService 的通知 contentIntent 写入） */
@@ -141,5 +147,14 @@ class MainActivity : ComponentActivity() {
 
         /** [EXTRA_OPEN_TAB] 的取值：打开「下载」Tab */
         const val TAB_DOWNLOAD = "download"
+
+        /** [EXTRA_OPEN_TAB] 的取值：打开「解析」Tab */
+        const val TAB_RESOLVE = "resolve"
+
+        /** [EXTRA_OPEN_TAB] 的取值：打开「账号」Tab */
+        const val TAB_DRIVE = "drive"
+
+        /** [EXTRA_OPEN_TAB] 的取值：打开解析页内「设置」Tab */
+        const val TAB_SETTINGS = "settings"
     }
 }

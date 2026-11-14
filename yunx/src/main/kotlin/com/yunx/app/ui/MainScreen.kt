@@ -23,6 +23,8 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -33,11 +35,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -45,6 +49,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -1357,7 +1362,12 @@ fun MainScreen(
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = "链接解析 · 视频图集 · 多网盘下载",
+                                        text = when (currentTab) {
+                                            MainTab.Resolve -> "链接解析 · 视频图集 · 多网盘下载"
+                                            MainTab.Drive -> "网盘账号 · 空间配额"
+                                            MainTab.Download -> "分片并发 · 断点续传"
+                                            MainTab.Settings -> "下载引擎与偏好"
+                                        },
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -1379,62 +1389,11 @@ fun MainScreen(
                                     }
                                 }
                             }
-                            Spacer(Modifier.height(12.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                MainTab.entries.forEach { tab ->
-                                    val selected = tab == currentTab
-                                    val shape = RoundedCornerShape(16.dp)
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(38.dp)
-                                            .clip(shape)
-                                            .background(
-                                                brush = if (selected) {
-                                                    Brush.horizontalGradient(
-                                                        listOf(
-                                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.30f),
-                                                            Color.White.copy(alpha = 0.07f),
-                                                        )
-                                                    )
-                                                } else {
-                                                    Brush.horizontalGradient(
-                                                        listOf(
-                                                            Color.White.copy(alpha = 0.055f),
-                                                            Color.White.copy(alpha = 0.025f),
-                                                        )
-                                                    )
-                                                },
-                                                shape = shape,
-                                            )
-                                            .border(
-                                                width = 1.dp,
-                                                color = if (selected) {
-                                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.48f)
-                                                } else {
-                                                    Color.White.copy(alpha = 0.07f)
-                                                },
-                                                shape = shape,
-                                            )
-                                            .clickable { currentTab = tab },
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Text(
-                                            text = stringResource(tab.titleRes),
-                                            style = MaterialTheme.typography.labelLarge,
-                                            color = if (selected) {
-                                                MaterialTheme.colorScheme.onSurface
-                                            } else {
-                                                MaterialTheme.colorScheme.onSurfaceVariant
-                                            },
-                                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                                        )
-                                    }
-                                }
-                            }
+                            Spacer(Modifier.height(10.dp))
+                            NieveParseSegments(
+                                current = currentTab,
+                                onSelect = { currentTab = it }
+                            )
                         }
                         Box(
                             modifier = Modifier
@@ -1828,6 +1787,76 @@ private fun MainNavigationRail(
                 label = { Text(stringResource(tab.titleRes)) },
                 alwaysShowLabel = currentTab == tab
             )
+        }
+    }
+}
+
+/** Nieve 玻璃分段控件：选中块随点击平滑滑动。 */
+@Composable
+private fun NieveParseSegments(current: MainTab, onSelect: (MainTab) -> Unit) {
+    val shape = RoundedCornerShape(22.dp)
+    val tabs = MainTab.entries
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(46.dp)
+            .clip(shape)
+            .background(
+                Brush.horizontalGradient(
+                    listOf(
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f),
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.025f)
+                    )
+                ),
+                shape
+            )
+            .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), shape)
+            .padding(4.dp)
+    ) {
+        val itemWidth = maxWidth / tabs.size
+        val index = tabs.indexOf(current).coerceAtLeast(0)
+        val offsetX by animateDpAsState(
+            targetValue = itemWidth * index,
+            animationSpec = spring(dampingRatio = 0.78f, stiffness = 520f),
+            label = "nieveSegments"
+        )
+        Box(
+            modifier = Modifier
+                .offset(x = offsetX)
+                .width(itemWidth)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(18.dp))
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.34f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f),
+                        )
+                    )
+                )
+                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.38f), RoundedCornerShape(18.dp))
+        )
+        Row(modifier = Modifier.fillMaxSize()) {
+            tabs.forEach { tab ->
+                val selected = tab == current
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(18.dp))
+                        .clickable { onSelect(tab) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(tab.titleRes),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (selected) MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+                    )
+                }
+            }
         }
     }
 }

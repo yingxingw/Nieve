@@ -29,6 +29,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -51,6 +52,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.Card
@@ -81,6 +83,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -941,10 +947,19 @@ private fun DriveAccountCard(
     /** 已登录时右侧「三个点」更多按钮（打开账号弹窗）；null 则不显示 */
     onMoreClick: (() -> Unit)? = null
 ) {
-    val cardShape = MaterialTheme.shapes.large
-    val cardColors = CardDefaults.cardColors(
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-    )
+    val cardShape = RoundedCornerShape(22.dp)
+    val glassTint = MaterialTheme.colorScheme.onSurface
+    val glassModifier = Modifier
+        .fillMaxWidth()
+        .shadow(6.dp, cardShape, clip = false)
+        .clip(cardShape)
+        .background(
+            brush = Brush.verticalGradient(
+                listOf(glassTint.copy(alpha = 0.075f), glassTint.copy(alpha = 0.02f))
+            ),
+            shape = cardShape
+        )
+        .border(1.dp, glassTint.copy(alpha = 0.12f), cardShape)
     val content: @Composable () -> Unit = {
         DriveAccountCardContent(
             account = account,
@@ -955,18 +970,9 @@ private fun DriveAccountCard(
     }
 
     if (onClick != null) {
-        Card(
-            onClick = onClick,
-            modifier = Modifier.fillMaxWidth(),
-            shape = cardShape,
-            colors = cardColors
-        ) { content() }
+        Box(modifier = glassModifier.clickable { onClick() }) { content() }
     } else {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = cardShape,
-            colors = cardColors
-        ) { content() }
+        Box(modifier = glassModifier) { content() }
     }
 }
 

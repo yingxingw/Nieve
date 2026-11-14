@@ -437,54 +437,11 @@ fun ResolveScreen(
                     onOpenBookmarks = onOpenBookmarks,
                     onRemoveShortcut = { bookmark ->
                         bookmarkViewModel.setHomePinned(bookmark.id, false)
-                    }
-                )
-            }
-        }
-
-        // 剪贴板分享链接提示卡片（仅输入页、有待提示内容时显示，带弹出动画）
-        // animatedSuggestion 保留最后提示内容，保证退出动画期间卡片不消失
-        var animatedSuggestion by remember { mutableStateOf<String?>(null) }
-        LaunchedEffect(clipboardSuggestion) {
-            clipboardSuggestion?.let { animatedSuggestion = it }
-        }
-        AnimatedVisibility(
-            visible = state is ResolveUiState.Idle && clipboardSuggestion != null,
-            enter = fadeIn(effectsDefault()) +
-                slideInVertically(spatialDefault()) { -it / 2 } +
-                scaleIn(tween(250, delayMillis = 60)),   // 保留 tween：弹簧规格无法表达 60ms 延迟
-            exit = fadeOut(effectsFast()) +
-                slideOutVertically(spatialFast()) { -it / 2 } +
-                scaleOut(spatialFast()),
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            animatedSuggestion?.let { suggestion ->
-                val shareParsed = ShareLinkParser.parse(suggestion)
-                val c139Parsed = C139KoulingParser.parse(suggestion)
-                val githubParsed = GitHubLinkParser.parse(suggestion)
-                val videoParsed = VideoLinkParser.parse(suggestion)
-                val platformName = when {
-                    videoParsed != null -> videoParsed.platform.displayName
-                    githubParsed != null -> "GitHub"
-                    shareParsed != null -> shareParsed.platform.displayName
-                    c139Parsed != null -> SharePlatform.C139.displayName
-                    else -> stringResource(R.string.rs_platform_generic)
-                }
-                val platformLogo = when {
-                    videoParsed != null -> videoParsed.platform.logoRes()
-                    githubParsed != null -> SharePlatform.GITHUB.logoRes()
-                    shareParsed != null -> shareParsed.platform.logoRes()
-                    c139Parsed != null -> SharePlatform.C139.logoRes()
-                    else -> null
-                }
-                val parsedPwd = shareParsed?.pwd ?: c139Parsed?.password
-                ClipboardSuggestCard(
-                    platformName = platformName,
-                    platformLogo = platformLogo,
-                    onPaste = {
+                    },
+                    clipboardSuggestion = clipboardSuggestion,
+                    onClipboardPaste = { suggestion ->
+                        val parsedPwd = ShareLinkParser.parse(suggestion)?.pwd
+                            ?: C139KoulingParser.parse(suggestion)?.password
                         link = suggestion
                         pwd = parsedPwd.orEmpty()
                         pwdEdited = true
@@ -492,7 +449,7 @@ fun ResolveScreen(
                         // 统一入口：先试视频、再试 GitHub、最后网盘
                         viewModel.startVideoResolve(suggestion, parsedPwd)
                     },
-                    onDismiss = {
+                    onClipboardDismiss = { suggestion ->
                         ignoredClipboard = suggestion
                         clipboardSuggestion = null
                     }
@@ -549,7 +506,13 @@ private fun ResolveInputContent(
     /** 打开收藏页管理快捷方式 */
     onOpenBookmarks: () -> Unit,
     /** 长按快捷方式确认后从主页移除 */
-    onRemoveShortcut: (BookmarkEntity) -> Unit
+    onRemoveShortcut: (BookmarkEntity) -> Unit,
+    /** 剪贴板里待提示的分享文本；null 时不显示提示卡 */
+    clipboardSuggestion: String? = null,
+    /** 点「粘贴并解析」 */
+    onClipboardPaste: (String) -> Unit = {},
+    /** 点「忽略」 */
+    onClipboardDismiss: (String) -> Unit = {}
 ) {
     val isLoading = state is ResolveUiState.Loading
 
@@ -561,6 +524,44 @@ private fun ResolveInputContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // 剪贴板提示卡：作为正常排版的一块放在输入面板上方，不再绝对定位悬浮覆盖输入框
+        var shownSuggestion by remember { mutableStateOf<String?>(null) }
+        LaunchedEffect(clipboardSuggestion) {
+            clipboardSuggestion?.let { shownSuggestion = it }
+        }
+        AnimatedVisibility(
+            visible = state is ResolveUiState.Idle && clipboardSuggestion != null,
+            enter = fadeIn(effectsDefault()),
+            exit = fadeOut(effectsFast())
+        ) {
+            shownSuggestion?.let { suggestion ->
+                val shareParsed = ShareLinkParser.parse(suggestion)
+                val c139Parsed = C139KoulingParser.parse(suggestion)
+                val githubParsed = GitHubLinkParser.parse(suggestion)
+                val videoParsed = VideoLinkParser.parse(suggestion)
+                val platformName = when {
+                    videoParsed != null -> videoParsed.platform.displayName
+                    githubParsed != null -> "GitHub"
+                    shareParsed != null -> shareParsed.platform.displayName
+                    c139Parsed != null -> SharePlatform.C139.displayName
+                    else -> stringResource(R.string.rs_platform_generic)
+                }
+                val platformLogo = when {
+                    videoParsed != null -> videoParsed.platform.logoRes()
+                    githubParsed != null -> SharePlatform.GITHUB.logoRes()
+                    shareParsed != null -> shareParsed.platform.logoRes()
+                    c139Parsed != null -> SharePlatform.C139.logoRes()
+                    else -> null
+                }
+                ClipboardSuggestCard(
+                    platformName = platformName,
+                    platformLogo = platformLogo,
+                    onPaste = { onClipboardPaste(suggestion) },
+                    onDismiss = { onClipboardDismiss(suggestion) }
+                )
+            }
+        }
+
         // 液态玻璃输入面板：把原来的裸输入框收进一块可读的磨砂玻璃里，
         // 这是解析页自己的视觉语言，不再沿用 YunX 原页面的白底表单。
         val panelShape = RoundedCornerShape(24.dp)
@@ -976,14 +977,16 @@ private fun ClipboardSuggestCard(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
+    val shape = RoundedCornerShape(20.dp)
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(color = nieveGlassFill(), shape = shape)
+            .background(nieveGlassHighlight(), shape)
+            .border(1.dp, nieveGlassBorder(), shape)
+            .padding(14.dp)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (platformLogo != null) {
                     Image(
@@ -996,7 +999,7 @@ private fun ClipboardSuggestCard(
                     Icon(
                         imageVector = Icons.Outlined.Link,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
                 Spacer(modifier = Modifier.width(10.dp))
@@ -1005,12 +1008,12 @@ private fun ClipboardSuggestCard(
                         text = stringResource(R.string.rs_detected_share, platformName),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = stringResource(R.string.rs_paste_and_resolve_q),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -1021,7 +1024,7 @@ private fun ClipboardSuggestCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 TextButton(onClick = onDismiss) {
-                    Text(stringResource(R.string.rs_ignore), color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    Text(stringResource(R.string.rs_ignore), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Spacer(modifier = Modifier.width(4.dp))
                 Button(
@@ -1034,7 +1037,6 @@ private fun ClipboardSuggestCard(
                     Text(stringResource(R.string.rs_paste_and_resolve))
                 }
             }
-        }
     }
 }
 /**

@@ -190,9 +190,9 @@ fun FloatingBottomBar(
     val effectsEnabled = isBackdropBlurEnabled || isLiquidGlassEnabled
     val effectsRenderable = effectsEnabled && isRuntimeShaderSupported()
     val containerColor = if (effectsRenderable) {
-        // 液态玻璃要能透出背后的内容：深色主题下只保留一层很薄的暗色膜，
-        // 之前 0.62 太厚，叠在纯黑背景上看起来就是一整块黑。
-        surfaceContainer.copy(0.34f)
+        // 液态玻璃要能透出背后的内容：浅色用半透白，深色用一层很薄的暗膜。
+        if (isInDark) Color(0xFF0B0B0F).copy(alpha = 0.42f)
+        else Color.White.copy(alpha = 0.46f)
     } else {
         surfaceContainer
     }
@@ -314,9 +314,9 @@ fun FloatingBottomBar(
                 .dropShadow(
                     shape = pillShape,
                     shadow = Shadow(
-                        radius = 10.dp,
+                        radius = 8.dp,
                         color = Color.Black,
-                        alpha = if (isInDark) 0.2f else 0.1f,
+                        alpha = if (isInDark) 0.12f else 0.06f,
                     ),
                 )
                 .clickable(
@@ -438,13 +438,13 @@ fun FloatingBottomBar(
                                 val progress = dampedDragAnimation.pressProgress
                                 drawRect(
                                     color = if (!isInDark) {
-                                        Color.Black.copy(alpha = 0.1f)
+                                        accentColor.copy(alpha = 0.12f)
                                     } else {
-                                        Color.White.copy(alpha = 0.1f)
+                                        Color.White.copy(alpha = 0.12f)
                                     },
                                     alpha = 1f - progress,
                                 )
-                                drawRect(Color.Black.copy(alpha = 0.03f * progress))
+                                drawRect(accentColor.copy(alpha = 0.06f * progress))
                             },
                         )
                         .innerShadow(shape = pillShape) {

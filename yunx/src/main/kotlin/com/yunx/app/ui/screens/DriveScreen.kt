@@ -87,6 +87,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.yunx.app.shell.nieveGlassBorder
+import com.yunx.app.shell.nieveGlassFill
+import com.yunx.app.shell.nieveGlassHighlight
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -951,19 +954,10 @@ private fun DriveAccountCard(
     val glassTint = MaterialTheme.colorScheme.onSurface
     val glassModifier = Modifier
         .fillMaxWidth()
-        .shadow(6.dp, cardShape, clip = false)
         .clip(cardShape)
-        .background(
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
-            shape = cardShape
-        )
-        .background(
-            brush = Brush.verticalGradient(
-                listOf(glassTint.copy(alpha = 0.06f), glassTint.copy(alpha = 0.02f))
-            ),
-            shape = cardShape
-        )
-        .border(1.dp, glassTint.copy(alpha = 0.12f), cardShape)
+        .background(color = nieveGlassFill(), shape = cardShape)
+        .background(nieveGlassHighlight(), shape = cardShape)
+        .border(1.dp, nieveGlassBorder(), cardShape)
     val content: @Composable () -> Unit = {
         DriveAccountCardContent(
             account = account,
@@ -1062,19 +1056,42 @@ private fun DriveAccountCardContent(
         }
 
         when {
-            account.isLoggedIn && onMoreClick != null -> IconButton(onClick = onMoreClick) {
-                Icon(
-                    imageVector = Icons.Outlined.MoreVert,
-                    contentDescription = stringResource(R.string.csb_drive_more),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            account.isLoggedIn && onMoreClick != null -> {
+                val moreShape = RoundedCornerShape(50)
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(moreShape)
+                        .background(color = nieveGlassFill(), shape = moreShape)
+                        .border(1.dp, nieveGlassBorder(), moreShape)
+                        .clickable(onClick = onMoreClick),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.MoreVert,
+                        contentDescription = stringResource(R.string.csb_drive_more),
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
             account.isLoggedIn -> LoginBadge(isLoggedIn = true)
-            clickable -> Text(
-                text = stringResource(R.string.csb_drive_go_login),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
+            clickable -> {
+                val pillShape = RoundedCornerShape(50)
+                Box(
+                    modifier = Modifier
+                        .clip(pillShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), pillShape)
+                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.34f), pillShape)
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.csb_drive_go_login),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
             else -> LoginBadge(isLoggedIn = false)
         }
     }
@@ -1171,6 +1188,9 @@ private fun DriveSortDialog(
     val maxListHeight = (LocalConfiguration.current.screenHeightDp * 0.42f).dp
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(26.dp),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+        tonalElevation = 0.dp,
         title = { Text(stringResource(R.string.csb_drive_sort_title)) },
         text = {
             Column {

@@ -139,10 +139,10 @@ fun NieveShell(
                                     easing = FastOutSlowInEasing,
                                 )
                                 val dir = if (forward) 1 else -1
-                                (fadeIn(tween(220)) + slideInHorizontally(slide) { it / 5 * dir })
+                                (fadeIn(tween(220)) + slideInHorizontally(slide) { it / 3 * dir })
                                     .togetherWith(
                                         fadeOut(tween(170)) +
-                                            slideOutHorizontally(slide) { -it / 5 * dir }
+                                            slideOutHorizontally(slide) { -it / 3 * dir }
                                     )
                             },
                             label = "shellPage",
@@ -244,6 +244,7 @@ fun NieveShell(
                             isLiquidGlassEnabled = settings.blur,
                         ) {
                             ShellTab.entries.forEach { tab ->
+                                val selected = tab.name == pageName
                                 FloatingBottomBarItem(
                                     onClick = { selectTab(tab) },
                                     modifier = Modifier.defaultMinSize(minWidth = 76.dp)
@@ -251,13 +252,15 @@ fun NieveShell(
                                     Icon(
                                         imageVector = tab.icon,
                                         contentDescription = tab.label,
-                                        tint = MiuixTheme.colorScheme.onSurface
+                                        tint = if (selected) MiuixTheme.colorScheme.primary
+                                        else MiuixTheme.colorScheme.onSurface
                                     )
                                     Text(
                                         text = tab.label,
                                         fontSize = 11.sp,
                                         lineHeight = 14.sp,
-                                        color = MiuixTheme.colorScheme.onSurface,
+                                        color = if (selected) MiuixTheme.colorScheme.primary
+                                        else MiuixTheme.colorScheme.onSurface,
                                         maxLines = 1,
                                         softWrap = false,
                                         overflow = TextOverflow.Visible

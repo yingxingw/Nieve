@@ -103,6 +103,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.yunx.app.R
+import com.yunx.app.shell.nieveGlassBorder
+import com.yunx.app.shell.nieveGlassFill
+import com.yunx.app.shell.nieveGlassHighlight
 import com.yunx.app.data.db.BookmarkEntity
 import com.yunx.app.data.network.C139KoulingParser
 import com.yunx.app.data.network.GitHubLinkParser
@@ -565,18 +568,11 @@ private fun ResolveInputContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(panelShape)
-                .background(
-                    brush = Brush.verticalGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f),
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.025f),
-                        )
-                    ),
-                    shape = panelShape,
-                )
+                .background(color = nieveGlassFill(), shape = panelShape)
+                .background(nieveGlassHighlight(), panelShape)
                 .border(
                     width = 1.dp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                    color = nieveGlassBorder(),
                     shape = panelShape,
                 )
                 .padding(14.dp),

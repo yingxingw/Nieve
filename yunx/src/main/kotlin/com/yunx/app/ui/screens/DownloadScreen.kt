@@ -121,6 +121,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.yunx.app.shell.nieveGlassBorder
+import com.yunx.app.shell.nieveGlassFill
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -304,12 +306,18 @@ fun DownloadScreen(
                     scaleY = fabScaleY
                 }
                 .size(62.dp)
-                .shadow(14.dp, CircleShape, clip = false)
+                .shadow(6.dp, CircleShape, clip = false)
                 .clip(CircleShape)
                 .background(
                     Brush.linearGradient(
                         listOf(Color(0xFF8FD4FF), Color(0xFF3D8DFF), Color(0xFF5FB8FF))
                     )
+                )
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.White.copy(alpha = 0.30f), Color.Transparent)
+                    ),
+                    CircleShape
                 )
                 .border(
                     width = 1.dp,
@@ -596,14 +604,15 @@ private fun EmptyDownloadState(modifier: Modifier = Modifier) {
         Box(
             modifier = Modifier
                 .size(84.dp)
-                .shadow(8.dp, CircleShape, clip = false)
                 .clip(CircleShape)
+                .background(color = nieveGlassFill(), shape = CircleShape)
                 .background(
                     Brush.verticalGradient(
-                        listOf(onSurface.copy(alpha = 0.09f), onSurface.copy(alpha = 0.02f))
-                    )
+                        listOf(Color.White.copy(alpha = 0.32f), Color.Transparent)
+                    ),
+                    CircleShape
                 )
-                .border(1.dp, onSurface.copy(alpha = 0.12f), CircleShape),
+                .border(1.dp, nieveGlassBorder(), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -1019,19 +1028,15 @@ private fun DownloadTaskCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(6.dp, nieveCardShape, clip = false)
             .clip(nieveCardShape)
-            .background(
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
-                shape = nieveCardShape
-            )
+            .background(color = nieveGlassFill(), shape = nieveCardShape)
             .background(
                 Brush.verticalGradient(
-                    listOf(glassTint.copy(alpha = 0.06f), glassTint.copy(alpha = 0.02f))
+                    listOf(Color.White.copy(alpha = 0.30f), Color.Transparent)
                 ),
                 nieveCardShape
             )
-            .border(1.dp, glassTint.copy(alpha = 0.12f), nieveCardShape)
+            .border(1.dp, nieveGlassBorder(), nieveCardShape)
             .combinedClickable(
                 onClick = {},
                 onLongClick = { showMenu = true }
@@ -1418,7 +1423,7 @@ private fun AddDownloadDialog(
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 12.dp)
                     .navigationBarsPadding()
-                    .shadow(24.dp, sheetShape, clip = false)
+                    .shadow(10.dp, sheetShape, clip = false)
                     .clip(sheetShape)
                     .background(
                         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),

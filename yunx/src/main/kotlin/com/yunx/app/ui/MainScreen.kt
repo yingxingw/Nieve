@@ -92,8 +92,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.yunx.app.shell.nieveGlassBorder
+import com.yunx.app.shell.nieveGlassFill
+import com.yunx.app.shell.nieveGlassHighlight
+import com.yunx.app.shell.NieveGlassIconButton
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -346,7 +350,9 @@ fun MainScreen(
         showQuarkLogin || showUCLogin ||
         showXunleiWebLogin || showXunleiVerify || showBaiduLogin || showC139Login ||
         showPan123Login || showPan115Login || showGuangYaLogin || showILanzouLogin ||
-        showLanzouLogin || videoLoginPlatform != null || previewRequest != null
+        showLanzouLogin || videoLoginPlatform != null || previewRequest != null ||
+        showBookmarks || showDownloadSettings || showAbout || showTheme ||
+        showLinkOpen || showMultiAccountDownload || showLanguage || showNetworkUpdate || showGopeed
     LaunchedEffect(immersiveShellPage) {
         onImmersiveChanged(immersiveShellPage)
     }
@@ -1382,6 +1388,7 @@ fun MainScreen(
                                     NieveGlassIconButton(
                                         icon = Icons.Outlined.Bookmarks,
                                         contentDescription = stringResource(R.string.vm_main_bookmark_links),
+                                        modifier = Modifier.padding(start = 8.dp),
                                         onClick = { showBookmarks = true }
                                     )
                                 }
@@ -1389,6 +1396,7 @@ fun MainScreen(
                                     NieveGlassIconButton(
                                         icon = Icons.Outlined.SwapVert,
                                         contentDescription = stringResource(R.string.vm_main_sort_drives),
+                                        modifier = Modifier.padding(start = 8.dp),
                                         onClick = { showDriveSort = true }
                                     )
                                 }
@@ -1716,12 +1724,11 @@ private fun copyToClipboard(context: Context, text: String) {
  */
 @Composable
 private fun OverlayPage(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    // sharedBounds 加在"底色之外"：形变中的容器自带不透明底色，过渡期间不会透出下层的窗口底色
+    // 二级页不再铺自己的不透明底：让壳层环境光透上来，与主页面材质保持一致。
     Box(
         modifier = Modifier
             .fillMaxSize()
             .then(modifier)
-            .background(MaterialTheme.colorScheme.surface)
     ) {
         content()
     }
@@ -1805,16 +1812,9 @@ private fun NieveParseSegments(current: MainTab, onSelect: (MainTab) -> Unit) {
             .fillMaxWidth()
             .height(46.dp)
             .clip(shape)
-            .background(
-                Brush.horizontalGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f),
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.025f)
-                    )
-                ),
-                shape
-            )
-            .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), shape)
+            .background(color = nieveGlassFill(), shape = shape)
+            .background(nieveGlassHighlight(), shape)
+            .border(1.dp, nieveGlassBorder(), shape)
             .padding(4.dp)
     ) {
         val itemWidth = maxWidth / tabs.size
@@ -1833,13 +1833,12 @@ private fun NieveParseSegments(current: MainTab, onSelect: (MainTab) -> Unit) {
                 .background(
                     Brush.verticalGradient(
                         listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.34f),
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
                         )
                     )
                 )
-                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.38f), RoundedCornerShape(18.dp))
+                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f), RoundedCornerShape(18.dp))
         )
         Row(modifier = Modifier.fillMaxSize()) {
             tabs.forEach { tab ->
@@ -1865,35 +1864,3 @@ private fun NieveParseSegments(current: MainTab, onSelect: (MainTab) -> Unit) {
     }
 }
 
-/** 顶栏右上角的液态玻璃圆形图标按钮（收藏云盘链接 / 排序与显示）。 */
-@Composable
-private fun NieveGlassIconButton(
-    icon: ImageVector,
-    contentDescription: String?,
-    onClick: () -> Unit
-) {
-    val tint = MaterialTheme.colorScheme.onSurface
-    val shape = RoundedCornerShape(50)
-    Box(
-        modifier = Modifier
-            .padding(start = 8.dp)
-            .size(42.dp)
-            .shadow(5.dp, shape, clip = false)
-            .clip(shape)
-            .background(
-                Brush.verticalGradient(
-                    listOf(tint.copy(alpha = 0.10f), tint.copy(alpha = 0.03f))
-                )
-            )
-            .border(1.dp, tint.copy(alpha = 0.14f), shape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            modifier = Modifier.size(21.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-    }
-}

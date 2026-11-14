@@ -113,6 +113,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import com.yunx.app.shell.nieveGlassBorder
+import com.yunx.app.shell.nieveGlassFill
+import com.yunx.app.shell.nieveGlassHighlight
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -930,6 +933,9 @@ fun SettingsScreen(
     if (showThreadsDialog) {
         AlertDialog(
             onDismissRequest = { showThreadsDialog = false },
+            shape = RoundedCornerShape(26.dp),
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+            tonalElevation = 0.dp,
             title = { Text(stringResource(R.string.dialog_threads_title)) },
             text = {
                 // 横屏/小屏时内容超高可滚动，避免按钮被挤出屏幕
@@ -998,6 +1004,9 @@ fun SettingsScreen(
         val current = settingsRepo.downloadThreadsFor(selectedThreadPlatform.platform)
         AlertDialog(
             onDismissRequest = { showPlatformThreadDialog = false },
+            shape = RoundedCornerShape(26.dp),
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+            tonalElevation = 0.dp,
             title = { Text(stringResource(R.string.dialog_platform_threads_title, stringResource(selectedThreadPlatform.label))) },
             text = {
                 Column(
@@ -1269,19 +1278,10 @@ internal fun SettingsItem(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(5.dp, shape, clip = false)
             .clip(shape)
-            .background(
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
-                shape = shape
-            )
-            .background(
-                Brush.verticalGradient(
-                    listOf(tint.copy(alpha = 0.06f), tint.copy(alpha = 0.02f))
-                ),
-                shape
-            )
-            .border(1.dp, tint.copy(alpha = 0.12f), shape)
+            .background(color = nieveGlassFill(), shape = shape)
+            .background(nieveGlassHighlight(), shape)
+            .border(1.dp, nieveGlassBorder(), shape)
             .then(
                 if (checked != null) Modifier.toggleable(
                     value = checked,

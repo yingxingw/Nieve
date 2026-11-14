@@ -1,18 +1,30 @@
 package com.yunx.app.shell
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 
 /**
  * Nieve 的 Material3 配色：深色模式统一为纯黑底，浅色模式保持干净的冷白，
@@ -35,8 +47,9 @@ fun NieveMaterialTheme(
                 onPrimaryContainer = Color(0xFFF4F4F6),
                 secondary = accent.copy(alpha = 0.82f),
                 onSecondary = onAccent,
-                secondaryContainer = Color(0xFF1A1A20),
-                onSecondaryContainer = Color(0xFFE8E8EC),
+                secondaryContainer = accent.copy(alpha = 0.16f),
+                onSecondaryContainer = Color(0xFFF4F4F6),
+                surfaceTint = accent,
                 background = Color.Black,
                 onBackground = Color(0xFFF4F4F6),
                 surface = Color.Black,
@@ -57,6 +70,11 @@ fun NieveMaterialTheme(
             lightColorScheme(
                 primary = accent,
                 onPrimary = onAccent,
+                primaryContainer = accent.copy(alpha = 0.16f),
+                onPrimaryContainer = Color(0xFF101014),
+                secondaryContainer = accent.copy(alpha = 0.14f),
+                onSecondaryContainer = Color(0xFF101014),
+                surfaceTint = accent,
                 background = Color(0xFFF6F7FA),
                 onBackground = Color(0xFF101014),
                 surface = Color(0xFFF6F7FA),
@@ -137,4 +155,58 @@ fun isNieveDark(colorMode: Int): Boolean = when (colorMode) {
     1, 4 -> false
     2, 5 -> true
     else -> isSystemInDarkTheme()
+}
+
+/** 液态玻璃卡片的底色：浅色下是半透白，深色下是极淡的白膜，不再用灰扑扑的 surfaceContainer。 */
+@Composable
+fun nieveGlassFill(): Color {
+    val light = MaterialTheme.colorScheme.surface.luminance() > 0.5f
+    return if (light) Color.White.copy(alpha = 0.62f) else Color.White.copy(alpha = 0.07f)
+}
+
+/** 玻璃边缘描边：浅色用低透明黑，深色用低透明白，保证卡片轮廓清楚。 */
+@Composable
+fun nieveGlassBorder(): Color {
+    val light = MaterialTheme.colorScheme.surface.luminance() > 0.5f
+    return if (light) Color(0xFF101014).copy(alpha = 0.10f) else Color.White.copy(alpha = 0.14f)
+}
+
+/** 玻璃顶部高光：叠一层自上而下的白色渐变，模拟折射亮边。 */
+@Composable
+fun nieveGlassHighlight(): Brush {
+    val light = MaterialTheme.colorScheme.surface.luminance() > 0.5f
+    return Brush.verticalGradient(
+        listOf(
+            Color.White.copy(alpha = if (light) 0.35f else 0.10f),
+            Color.Transparent
+        )
+    )
+}
+
+/** Nieve 通用：玻璃圆形图标按钮（顶栏收藏 / 排序 / 返回 / 新增）。 */
+@Composable
+fun NieveGlassIconButton(
+    icon: ImageVector,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(50)
+    Box(
+        modifier = modifier
+            .size(40.dp)
+            .clip(shape)
+            .background(color = nieveGlassFill(), shape = shape)
+            .background(nieveGlassHighlight(), shape)
+            .border(1.dp, nieveGlassBorder(), shape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+    }
 }

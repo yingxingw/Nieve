@@ -38,7 +38,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yunx.app.ui.MainScreen
 import com.yunx.app.ui.navigation.MainTab
-import com.yunx.app.ui.screens.SafetyNoticeDialog
 import io.github.seyud.weave.ui.component.FloatingBottomBar
 import io.github.seyud.weave.ui.component.FloatingBottomBarItem
 import io.github.seyud.weave.ui.theme.LocalEnableBlur
@@ -264,7 +263,6 @@ fun NieveShell(
                         }
                     }
                 }
-                SafetyNoticeDialog()
             }
         }
     }

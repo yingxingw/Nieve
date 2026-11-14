@@ -343,10 +343,7 @@ fun MainScreen(
     LaunchedEffect(immersiveShellPage) {
         onImmersiveChanged(immersiveShellPage)
     }
-    LaunchedEffect(Unit) {
-        val prefs = context.getSharedPreferences("yunx_prefs", android.content.Context.MODE_PRIVATE)
-        showOnboarding = !prefs.getBoolean("onboarding_shown", false)
-    }
+    // 首次启动引导页不再自动弹出；仅保留设置页里的手动入口。
 
     val api = remember { QuarkApi() }
     val ucApi = remember { UCApi() }

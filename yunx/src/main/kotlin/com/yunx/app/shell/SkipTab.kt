@@ -70,11 +70,7 @@ import com.android.skip.data.SyncWorker
 import com.android.skip.data.config.ConfigViewModel
 import com.android.skip.ui.alive.notificationbar.NotificationBarViewModel
 import com.android.skip.ui.inspect.InspectActivity
-import com.android.skip.ui.main.disclaimer.DisclaimerDialog
-import com.android.skip.ui.main.disclaimer.DisclaimerViewModel
 import com.android.skip.ui.main.start.StartAccessibilityViewModel
-import com.android.skip.ui.main.tutorial.TutorialDialog
-import com.android.skip.ui.main.tutorial.TutorialViewModel
 import com.android.skip.ui.settings.log.SkipLogViewModel
 import com.android.skip.ui.settings.recent.RecentViewModel
 import com.android.skip.ui.settings.strict.StrictViewModel
@@ -118,8 +114,6 @@ fun SkipTab(
 
     val startAccessibilityViewModel: StartAccessibilityViewModel = viewModel()
     val configViewModel: ConfigViewModel = viewModel()
-    val tutorialViewModel: TutorialViewModel = viewModel()
-    val disclaimerViewModel: DisclaimerViewModel = viewModel()
     val recentViewModel: RecentViewModel = viewModel()
     val tipViewModel: TipViewModel = viewModel()
     val strictViewModel: StrictViewModel = viewModel()
@@ -197,7 +191,6 @@ fun SkipTab(
             activity = activity,
             running = running,
             accessibilityState = accessibilityState,
-            tutorialViewModel = tutorialViewModel,
             onOpenSettings = { onRouteChange(SkipRoute.Settings) },
             onOpenWhitelist = { onRouteChange(SkipRoute.Whitelist) },
             onOpenAlive = { onRouteChange(SkipRoute.Alive) },
@@ -205,26 +198,7 @@ fun SkipTab(
     }
     }
 
-    TutorialDialog(tutorialViewModel, {
-        tutorialViewModel.changeDialogState(false)
-        DataStoreUtils.putSyncData(
-            activity.getString(com.android.skip.R.string.store_show_tutorial),
-            false
-        )
-        openAccessibilitySettings(activity)
-    }, {
-        tutorialViewModel.changeDialogState(false)
-    })
-    DisclaimerDialog(disclaimerViewModel, {
-        disclaimerViewModel.changeDialogState(false)
-        DataStoreUtils.putSyncData(
-            activity.getString(com.android.skip.R.string.store_show_disclaimer),
-            false
-        )
-    }, {
-        disclaimerViewModel.changeDialogState(false)
-        onExitToHome()
-    })
+// 首次进入的「跳过教程」弹窗已移除：点击服务开关直接跳系统无障碍设置。
 }
 
 private object SkipRoute {
@@ -262,7 +236,6 @@ private fun SkipDashboard(
     activity: ComponentActivity,
     running: Boolean,
     accessibilityState: AccessibilityState,
-    tutorialViewModel: TutorialViewModel,
     onOpenSettings: () -> Unit,
     onOpenWhitelist: () -> Unit,
     onOpenAlive: () -> Unit,
@@ -297,20 +270,9 @@ private fun SkipDashboard(
                     AccessibilityState.STOPPED -> "未开启，点此前往无障碍设置"
                 },
                 checked = running,
-                onCheckedChange = { want ->
-                    if (want) {
-                        val showTutorial = DataStoreUtils.getSyncData(
-                            activity.getString(com.android.skip.R.string.store_show_tutorial),
-                            true
-                        )
-                        if (showTutorial) {
-                            tutorialViewModel.changeDialogState(true)
-                        } else {
-                            openAccessibilitySettings(activity)
-                        }
-                    } else {
-                        openAccessibilitySettings(activity)
-                    }
+                onCheckedChange = {
+                    // 不再弹教程弹窗，直接前往系统无障碍设置开启服务。
+                    openAccessibilitySettings(activity)
                 },
                 startAction = {
                     Icon(

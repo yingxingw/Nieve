@@ -113,9 +113,10 @@ Material3 1.5.0-alpha18 / Miuix 0.9.4 / Hilt 2.60.1 / Room 2.8.5 / WorkManager 2
 
 ```properties
 qimao.secret=你的本地签名值
+qimao.aesKey=你的本地内容解密值
 ```
 
-Gradle 会将它写入 `BuildConfig.QIMAO_SECRET`；未配置时七猫相关功能会提示缺少本地配置，其他功能不受影响。
+Gradle 会将它写入 `BuildConfig.QIMAO_SECRET` / `BuildConfig.QIMAO_AES_KEY`；未配置时七猫相关功能会提示缺少本地配置，其他功能不受影响。
 
 ## 开源许可与致谢
 

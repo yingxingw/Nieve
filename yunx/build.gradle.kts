@@ -1,5 +1,3 @@
-import java.util.Properties
-
 /*
  * yunx — YunX (云析) full source as an Android library (AGPL-3.0, Copyright (C) 2026 CYQawa).
  * Also hosts the merged application entry (com.yunx.app.YunXApp) and the unified
@@ -20,17 +18,6 @@ android {
     }
     buildToolsVersion = "37.0.0"
 
-    val qimaoSecret = runCatching {
-        val props = Properties()
-        rootProject.file("local.properties").inputStream().use { props.load(it) }
-        props.getProperty("qimao.secret").orEmpty()
-    }.getOrDefault("")
-    val qimaoAesKey = runCatching {
-        val props = Properties()
-        rootProject.file("local.properties").inputStream().use { props.load(it) }
-        props.getProperty("qimao.aesKey").orEmpty()
-    }.getOrDefault("")
-
     defaultConfig {
         // Nieve 对外包名；namespace/类名保持 com.yunx.app，YunX 的入口自检依赖类名后缀。
         applicationId = "com.nieve.app"
@@ -38,16 +25,6 @@ android {
         targetSdk = 34
         versionCode = 312
         versionName = "3.1.2"
-        buildConfigField(
-            "String",
-            "QIMAO_SECRET",
-            "\"${qimaoSecret.replace("\\", "\\\\").replace("\"", "\\\"")}\""
-        )
-        buildConfigField(
-            "String",
-            "QIMAO_AES_KEY",
-            "\"${qimaoAesKey.replace("\\", "\\\\").replace("\"", "\\\"")}\""
-        )
     }
 
     buildFeatures {
@@ -60,7 +37,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
-
 }
 
 ksp {

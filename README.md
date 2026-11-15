@@ -6,7 +6,7 @@ Nieve：网盘解析下载、开屏跳过与液态玻璃界面的 Android 工具
 - 开发者：酷安初雪
 - 版本：3.1.2（versionCode 312）
 - 源码仓库：<https://github.com/yingxingw/Nieve>
-- 安装包：`releases/Nieve-3.1.2.apk`
+- 安装包：[Nieve-3.1.2.apk](https://github.com/yingxingw/Nieve/releases/download/v3.1.2/Nieve-3.1.2.apk)
 
 Nieve 围绕日常使用和 Android 深度折腾持续迭代，把常用的小工具收进同一个轻量界面，不接入广告 SDK，不做账号系统，也不上传个人数据。
 

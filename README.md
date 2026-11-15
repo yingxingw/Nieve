@@ -1,6 +1,6 @@
 # Nieve
 
-由初雪独立开发与调试的 Android 多功能工具。
+Nieve：网盘解析下载、开屏跳过与液态玻璃界面的 Android 工具。由初雪独立开发与调试。
 
 - 应用名：Nieve
 - 开发者：酷安初雪
@@ -36,58 +36,10 @@ Nieve 围绕日常使用和 Android 深度折腾持续迭代，把常用的小�
 - 主题模式、Monet 取色、毛玻璃 BarBlur、动态背景着色
 
 ### 远程能力
-- 公告：从公告仓库读取多份公告，应用内「公告」页按顺序展示
-- 一键禁用：远程配置 `disabled=true` 后，启动即显示停用页
-- 一键强制更新：远程配置 `forceUpdate=true` 或 `minVersionCode` 高于当前版本时，启动阻断并引导更新
-- 检查更新：读取当前源码仓库根目录的 `update.json`
+- 公告：应用内查看维护消息与版本提示
+- 远程停用与强制更新：由维护者按版本统一控制
+- 检查更新：应用内检查是否有新版本
 - 网络不可用时按正常可用处理，不会因为拉取失败把应用锁死
-
-## 远程配置
-
-更新 / 禁用 / 强制更新配置文件：
-
-```text
-https://raw.githubusercontent.com/yingxingw/Nieve/main/update.json
-```
-
-应用优先通过 GitHub Contents API 读取该文件，提交后立即生效；API 不可用时回退 raw 地址。
-
-字段：
-
-```json
-{
-  "versionCode": 312,
-  "versionName": "3.1.2",
-  "minVersionCode": 0,
-  "downloadUrl": "https://raw.githubusercontent.com/yingxingw/Nieve/f09ef396e2327b8fd3e88cfeb06a129c48da1aa4/releases/Nieve-3.1.2.apk",
-  "changelog": "更新内容",
-  "updateDate": "2026-11-15",
-  "forceUpdate": false,
-  "disabled": false,
-  "disabledMessage": "Nieve 暂时停止使用，请等待后续版本。"
-}
-```
-
-公告文件放在旧仓库：
-
-```text
-https://raw.githubusercontent.com/yingxingw/nieve-update/main/announcements.json
-```
-
-支持多份公告：
-
-```json
-{
-  "items": [
-    {
-      "id": "2026-11-15-release",
-      "title": "Nieve 3.1.2 已发布",
-      "content": "公告正文",
-      "date": "2026-11-15"
-    }
-  ]
-}
-```
 
 ## 工程结构
 

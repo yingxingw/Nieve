@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.DirectionsWalk
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.LiveTv
 import androidx.compose.material.icons.rounded.MenuBook
@@ -40,7 +39,6 @@ import com.yunx.app.tools.beauty.BeautyScreen
 import com.yunx.app.tools.movie.MovieTab
 import com.yunx.app.tools.music.MusicTab
 import com.yunx.app.tools.novel.NovelTab
-import com.yunx.app.tools.step.StepScreen
 import com.yunx.app.tools.vip.VipParseScreen
 import com.yunx.app.tools.web.WebSourceScreen
 
@@ -52,7 +50,6 @@ private data class ToolEntry(
 )
 
 private val toolEntries = listOf(
-    ToolEntry("step", "修改步数", "Zepp Life 多账号登录与步数同步", Icons.Rounded.DirectionsWalk),
     ToolEntry("novel", "七猫小说", "榜单 · 分类 · 搜索 · 阅读 · 整本下载", Icons.Rounded.MenuBook),
     ToolEntry("movie", "影视大全", "多线路搜索 · 详情 · 选集播放", Icons.Rounded.Movie),
     ToolEntry("vip", "VIP 解析", "小T / 小Q / 小B / 小Y · 六线路", Icons.Rounded.LiveTv),
@@ -88,7 +85,6 @@ fun ToolsTab(
     ) { current ->
         when (current) {
             "hub" -> ToolsHome(onOpen = { route = it })
-            "step" -> StepScreen(onExit = { route = "hub" })
             "novel" -> NovelTab(
                 onExit = { route = "hub" },
                 onImmersiveChanged = onImmersiveChanged,

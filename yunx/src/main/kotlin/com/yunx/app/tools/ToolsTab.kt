@@ -17,7 +17,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.LiveTv
-import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material.icons.rounded.Code
@@ -38,7 +37,6 @@ import com.yunx.app.shell.NievePageTransition
 import com.yunx.app.tools.beauty.BeautyScreen
 import com.yunx.app.tools.movie.MovieTab
 import com.yunx.app.tools.music.MusicTab
-import com.yunx.app.tools.novel.NovelTab
 import com.yunx.app.tools.vip.VipParseScreen
 import com.yunx.app.tools.web.WebSourceScreen
 
@@ -50,7 +48,6 @@ private data class ToolEntry(
 )
 
 private val toolEntries = listOf(
-    ToolEntry("novel", "七猫小说", "榜单 · 分类 · 搜索 · 阅读 · 整本下载", Icons.Rounded.MenuBook),
     ToolEntry("movie", "影视大全", "多线路搜索 · 详情 · 选集播放", Icons.Rounded.Movie),
     ToolEntry("vip", "VIP 解析", "小T / 小Q / 小B / 小Y · 六线路", Icons.Rounded.LiveTv),
     ToolEntry("music", "音乐", "本地 + 三平台聚合搜索 · 免费下载", Icons.Rounded.LibraryMusic),
@@ -85,10 +82,6 @@ fun ToolsTab(
     ) { current ->
         when (current) {
             "hub" -> ToolsHome(onOpen = { route = it })
-            "novel" -> NovelTab(
-                onExit = { route = "hub" },
-                onImmersiveChanged = onImmersiveChanged,
-            )
             "movie" -> MovieTab(
                 onExit = { route = "hub" },
                 onImmersiveChanged = onImmersiveChanged,
@@ -126,7 +119,7 @@ private fun ToolsHome(onOpen: (String) -> Unit) {
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "影视 · 音乐 · 小说 · 实用工具",
+                    text = "影视 · 音乐 · 实用工具",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 10.dp),

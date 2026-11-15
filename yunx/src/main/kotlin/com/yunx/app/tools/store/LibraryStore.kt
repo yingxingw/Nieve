@@ -4,14 +4,6 @@ import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.yunx.app.tools.movie.Movie
-import com.yunx.app.tools.novel.QmBook
-
-data class NovelHistoryEntry(
-    val book: QmBook,
-    val chapterIndex: Int,
-    val chapterTitle: String,
-    val updatedAt: Long,
-)
 
 data class MovieFavoriteEntry(
     val movie: Movie,
@@ -28,35 +20,11 @@ data class MovieHistoryEntry(
     val updatedAt: Long,
 )
 
-/** 收藏与观看/阅读记录，全部保存在本机，不依赖账号。 */
+/** 收藏与观看记录，全部保存在本机，不依赖账号。 */
 class LibraryStore(context: Context) {
     private val prefs = context.applicationContext
         .getSharedPreferences("nieve_library_v1", Context.MODE_PRIVATE)
     private val gson = Gson()
-
-    fun novelFavorites(): List<QmBook> = readList(KEY_NOVEL_FAV, QmBook::class.java)
-
-    fun isNovelFavorite(id: String): Boolean = novelFavorites().any { it.id == id }
-
-    fun toggleNovelFavorite(book: QmBook): Boolean {
-        val list = novelFavorites().toMutableList()
-        val exists = list.any { it.id == book.id }
-        if (exists) list.removeAll { it.id == book.id } else list.add(0, book)
-        writeList(KEY_NOVEL_FAV, list)
-        return !exists
-    }
-
-    fun novelHistory(): List<NovelHistoryEntry> = readList(KEY_NOVEL_HISTORY, NovelHistoryEntry::class.java)
-
-    fun recordNovel(book: QmBook, chapterIndex: Int, chapterTitle: String) {
-        val list = novelHistory().toMutableList()
-        list.removeAll { it.book.id == book.id }
-        list.add(
-            0,
-            NovelHistoryEntry(book, chapterIndex, chapterTitle, System.currentTimeMillis())
-        )
-        writeList(KEY_NOVEL_HISTORY, list.take(MAX_HISTORY))
-    }
 
     fun movieFavorites(): List<MovieFavoriteEntry> =
         readList(KEY_MOVIE_FAV, MovieFavoriteEntry::class.java)
@@ -113,8 +81,6 @@ class LibraryStore(context: Context) {
     }
 
     private companion object {
-        const val KEY_NOVEL_FAV = "novel_favorites"
-        const val KEY_NOVEL_HISTORY = "novel_history"
         const val KEY_MOVIE_FAV = "movie_favorites"
         const val KEY_MOVIE_HISTORY = "movie_history"
         const val MAX_HISTORY = 50

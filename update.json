@@ -4,7 +4,7 @@
   "minVersionCode": 0,
   "downloadUrl": "https://github.com/yingxingw/Nieve/releases/download/v3.1.7/Nieve-3.1.7.apk",
   "openSourceUrl": "https://github.com/yingxingw/Nieve/releases/download/v3.1.7/Nieve-3.1.7.apk",
-  "cloudDriveUrl": "https://1821985494.share.123pan.cn/123pan/c8iajv-ADMs3",
+  "cloudDriveUrl": "https://1821985494.share.123pan.cn/123pan/c8iajv-FYns3",
   "cloudDriveName": "123 云盘",
   "cloudDriveNote": "国内云盘通道，GitHub 访问较慢时可以选它",
   "changelog": "Nieve 3.1.7（汇总 3.1.3 以来全部改动）：\n1. 音乐成为完整播放器板块：全屏播放页、歌词跟随与点击跳转、悬浮唱片、三种播放模式、歌单与本地音乐、系统通知与锁屏控制；\n2. 新增 6 个实用小工具：Base64、摩斯电码、金额大写、时间戳转换、温度换算、特殊文字；\n3. 下载板块侧栏自动收起，浏览文件时内容占满宽度，从内容区右滑呼出导航；\n4. 启动与回到前台自动识别剪贴板链接，一键解析，直链与磁力可直接下载；\n5. 流畅模式进一步加强：短淡入淡出过渡、唱片停转、歌词与进度降频、封面小尺寸解码、图片缓存上限 10%、WebView 单实例且不落盘缓存；\n6. 首页新增「一起开发」入口；VIP 解析进入前提示「仅部分链接可用」，失败可交给浏览器打开；\n7. 自动领红包本期不再提供，入口改为原因说明页；\n8. 修复通知栏模式按钮导致 MediaSession 崩溃、本地音乐空列表提示误导、剪贴板重复提示、外部 intent 再次进入只落到功能首页等问题。",

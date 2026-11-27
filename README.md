@@ -7,7 +7,7 @@ Nieve：网盘解析下载、开屏跳过、工具中心与液态玻璃界面的
 - 版本：3.1.7（versionCode 317）
 - 源码仓库：<https://github.com/yingxingw/Nieve>
 - 安装包：[Nieve-3.1.7.apk](https://github.com/yingxingw/Nieve/releases/download/v3.1.7/Nieve-3.1.7.apk)
-- 123 云盘（长期下载）：<https://1821985494.share.123pan.cn/123pan/c8iajv-ADMs3>
+- 123 云盘（长期下载）：<https://1821985494.share.123pan.cn/123pan/c8iajv-FYns3>
 
 Nieve 围绕日常使用和 Android 深度折腾持续迭代，把常用的小工具收进同一个轻量界面，不接入广告 SDK，不做账号系统，也不上传个人数据。
 
@@ -15,7 +15,7 @@ Nieve 围绕日常使用和 Android 深度折腾持续迭代，把常用的小�
 
 - GitHub Releases（推荐，含历史版本）：<https://github.com/yingxingw/Nieve/releases>
 - 最新安装包：[Nieve-3.1.7.apk](https://github.com/yingxingw/Nieve/releases/download/v3.1.7/Nieve-3.1.7.apk)
-- 123 云盘（长期备用）：<https://1821985494.share.123pan.cn/123pan/c8iajv-ADMs3>
+- 123 云盘（长期备用）：<https://1821985494.share.123pan.cn/123pan/c8iajv-FYns3>
 - 更新日志：`docs/更新日志-3.1.3-3.1.7.md`
 
 ## 功能
